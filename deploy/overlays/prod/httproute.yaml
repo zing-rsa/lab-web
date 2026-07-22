@@ -1,0 +1,20 @@
+# Routes infra.zingdev.xyz to this app on the shared Gateway.
+#
+# NOTE: the existing infra listener is `infra-https` with hostname
+# *.infra.zingdev.xyz, whose wildcard cert does NOT cover the bare apex
+# infra.zingdev.xyz. Serving the apex needs a small change in the lab repo,
+# mirroring dev-apex-https/uat-apex-https:
+#   1. add an `infra-apex-https` listener (hostname: infra.zingdev.xyz) to the
+#      main Gateway, env=infra selector, same wildcard-infra-tls secret;
+#   2. add `infra.zingdev.xyz` as a dnsName on the infra wildcard Certificate
+#      so the cert covers the apex too.
+# Alternatively, host at a subdomain (e.g. lab.infra.zingdev.xyz) and point
+# sectionName at the existing `infra-https` listener with no gateway changes.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: { name: lab-web }
+spec:
+  parentRefs: [{ name: main, namespace: envoy-gateway-system, sectionName: infra-apex-https }]
+  hostnames: [infra.zingdev.xyz]
+  rules:
+    - backendRefs: [{ name: lab-web, port: 80 }]

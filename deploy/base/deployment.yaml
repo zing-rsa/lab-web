@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: lab-web, labels: { app: lab-web } }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: lab-web } }
+  template:
+    metadata:
+      labels: { app: lab-web }
+      # resource.opentelemetry.io/* annotations are lifted to OTel resource attributes by
+      # Alloy's k8sattributes processor, so logs carry the same service.name as traces.
+      annotations:
+        resource.opentelemetry.io/service.name: lab-web
+    spec:
+      imagePullSecrets: [{ name: ghcr }]
+      containers:
+        - name: lab-web
+          image: ghcr.io/zing-rsa/lab-web
+          ports: [{ containerPort: 3000 }]
+          env:
+            # OTLP traces -> Alloy (observability ns), which forwards to Tempo.
+            - { name: OTEL_EXPORTER_OTLP_ENDPOINT, value: "http://alloy.observability.svc.cluster.local:4318" }
+            - { name: OTEL_SERVICE_NAME, value: lab-web }
+          resources:
+            requests: { cpu: 25m, memory: 96Mi }
+            limits: { memory: 256Mi }
+          readinessProbe:
+            httpGet: { path: /, port: 3000 }
+            initialDelaySeconds: 3
+            periodSeconds: 10
