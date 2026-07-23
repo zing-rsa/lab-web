@@ -11,9 +11,13 @@ import { getEdgeParams, nodeRect } from "./edge-geometry";
 export interface FloatingEdgeData {
   flow?: FlowKind;
   label?: string;
+  labelDy?: number;
   internetAnchor?: number;
   downFrac?: number;
   targetTopFrac?: number;
+  targetBottomFrac?: number;
+  sourceTopFrac?: number;
+  sourceBottomFrac?: number;
   highlighted: boolean;
   dimmed: boolean;
   [key: string]: unknown;
@@ -70,6 +74,36 @@ export function FloatingEdge({
     tx = t.x + t.w * d.targetTopFrac;
     ty = t.y;
     targetPos = Position.Top;
+    anchored = true;
+  }
+
+  // Enter the target on its bottom edge at a set x-fraction (align vertically
+  // with the node's top exit).
+  if (typeof d.targetBottomFrac === "number") {
+    const t = nodeRect(targetNode);
+    tx = t.x + t.w * d.targetBottomFrac;
+    ty = t.y + t.h;
+    targetPos = Position.Bottom;
+    anchored = true;
+  }
+
+  // Exit the source on its top edge at a set x-fraction (align vertically with
+  // the node's bottom entry).
+  if (typeof d.sourceTopFrac === "number") {
+    const s = nodeRect(sourceNode);
+    sx = s.x + s.w * d.sourceTopFrac;
+    sy = s.y;
+    sourcePos = Position.Top;
+    anchored = true;
+  }
+
+  // Exit the source on its bottom edge at a set x-fraction (align vertically
+  // with a downstream entry).
+  if (typeof d.sourceBottomFrac === "number") {
+    const s = nodeRect(sourceNode);
+    sx = s.x + s.w * d.sourceBottomFrac;
+    sy = s.y + s.h;
+    sourcePos = Position.Bottom;
     anchored = true;
   }
 
@@ -166,7 +200,7 @@ export function FloatingEdge({
           <div
             className="absolute whitespace-nowrap rounded border bg-paper/90 px-1.5 py-0.5 text-[9px] font-medium tracking-wide backdrop-blur-sm"
             style={{
-              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY + (d.labelDy ?? 0)}px)`,
               color: stroke,
               borderColor: `${stroke}66`,
               pointerEvents: "none",

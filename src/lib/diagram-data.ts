@@ -58,6 +58,8 @@ export interface EdgeDef {
   flow?: FlowKind;
   /** Optional label rendered on the edge (typically on the first segment). */
   label?: string;
+  /** Vertical nudge (px) for the label; negative moves it up. */
+  labelDy?: number;
   /**
    * Anchor the internet-side endpoint at this fraction (0–1) of the internet
    * node's bottom edge, so the flows fan out with even spacing.
@@ -73,6 +75,21 @@ export interface EdgeDef {
    * midpoint), e.g. to line the entry up with a downstream exit.
    */
   targetTopFrac?: number;
+  /**
+   * Enter the target on its bottom edge at this x-fraction, e.g. to line a
+   * bottom entry up vertically with the node's top exit.
+   */
+  targetBottomFrac?: number;
+  /**
+   * Exit the source on its top edge at this x-fraction, e.g. to line a top
+   * exit up vertically with the node's bottom entry.
+   */
+  sourceTopFrac?: number;
+  /**
+   * Exit the source on its bottom edge at this x-fraction, e.g. to line a
+   * bottom exit up vertically with the node's top entry.
+   */
+  sourceBottomFrac?: number;
 }
 
 export type AccentKey =
@@ -455,9 +472,10 @@ export const OFFSETS: { id: string; dx: number }[] = [
  * Post-layout horizontal nudges: shift `id` so its centre lines up with
  * `toId`'s centre — or, when `toId2` is given, the midpoint between the two
  * (e.g. the bastion sitting roughly between the load balancer and firewall).
+ * `dx` applies an extra offset after centring.
  */
-export const ALIGNMENTS: { id: string; toId: string; toId2?: string }[] = [
-  { id: "bastion", toId: "hetzner-lb", toId2: "hetzner-firewall" },
+export const ALIGNMENTS: { id: string; toId: string; toId2?: string; dx?: number }[] = [
+  { id: "bastion", toId: "hetzner-lb", toId2: "hetzner-firewall", dx: 30 },
   { id: "cloudflare-dns", toId: "hetzner-lb" },
 ];
 
@@ -479,10 +497,17 @@ export const EDGES: EdgeDef[] = [
     source: "internet",
     target: "hetzner-firewall",
     flow: "admin",
-    label: "controlled/admin ingress",
+    label: "Admin Ingress",
     internetAnchor: 0.75,
+    targetTopFrac: 0.14,
   },
-  { source: "hetzner-firewall", target: "bastion", flow: "admin", targetTopFrac: 0.8 },
+  {
+    source: "hetzner-firewall",
+    target: "bastion",
+    flow: "admin",
+    targetTopFrac: 0.8,
+    sourceBottomFrac: 0.14,
+  },
   {
     source: "bastion",
     target: "control-plane-pool",
@@ -491,13 +516,15 @@ export const EDGES: EdgeDef[] = [
   },
 
   // --- application egress: NAT back out to the internet ---
-  { source: "app-pods", target: "bastion", flow: "egress" },
+  { source: "app-pods", target: "bastion", flow: "egress", targetBottomFrac: 0.3 },
   {
     source: "bastion",
     target: "internet",
     flow: "egress",
     label: "Application Egress",
+    labelDy: -8,
     internetAnchor: 0.5,
+    sourceTopFrac: 0.3,
   },
 
   // --- internal dependency links (revealed on hover/focus) ---
@@ -535,7 +562,9 @@ export const EDGES: EdgeDef[] = [
   { source: "app-pods", target: "tempo" },
   { source: "cnpg", target: "prometheus" },
 
-  { source: "app-pods", target: "cnpg" },
+  { source: "app1", target: "cnpg" },
+  { source: "app2", target: "cnpg" },
+  { source: "app3", target: "cnpg" },
   { source: "app-pods", target: "external-secrets" },
   { source: "external-dns", target: "app-pods" },
   { source: "cert-manager", target: "app-pods" },
@@ -546,8 +575,8 @@ export const EDGES: EdgeDef[] = [
 const LEAF_W = 190;
 const LEAF_H = 82;
 const HEADER = 32;
-const PAD = 26;
-const GAP = 16;
+const PAD = 32;
+const GAP = 20;
 
 const LEAF_MAP = new Map(COMPONENTS.map((c) => [c.id, c]));
 const BOX_MAP = new Map(BOXES.map((b) => [b.id, b]));
@@ -759,7 +788,7 @@ export function buildLayout(): LaidNode[] {
     if (node) node.x += dx;
   }
 
-  for (const { id, toId, toId2 } of ALIGNMENTS) {
+  for (const { id, toId, toId2, dx } of ALIGNMENTS) {
     const node = byId.get(id);
     const target = byId.get(toId);
     if (!node || !target) continue;
@@ -770,7 +799,7 @@ export function buildLayout(): LaidNode[] {
     }
     // A horizontal translation is identical in absolute and parent-relative
     // space, so nudging the node's own x is enough (children move with it).
-    node.x += targetCenter - absCenterX(node);
+    node.x += targetCenter - absCenterX(node) + (dx ?? 0);
   }
 
   return out;

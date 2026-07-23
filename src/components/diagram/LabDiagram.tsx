@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -12,6 +12,7 @@ import {
   MarkerType,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   type Node,
   type Edge,
   type NodeMouseHandler,
@@ -137,15 +138,32 @@ const BASE_EDGES: Edge[] = EDGES.map((e) => {
     data: {
       flow: e.flow,
       label: e.label,
+      labelDy: e.labelDy,
       internetAnchor: e.internetAnchor,
       downFrac: e.downFrac,
       targetTopFrac: e.targetTopFrac,
+      targetBottomFrac: e.targetBottomFrac,
+      sourceTopFrac: e.sourceTopFrac,
+      sourceBottomFrac: e.sourceBottomFrac,
     },
     markerEnd: { type: MarkerType.ArrowClosed, width: 13, height: 13, color },
   };
 });
 
-function Flow() {
+// Fit padding reserves room for the writeup card while it's open, then frees
+// that space once it's collapsed so the diagram re-centres to fill the viewport.
+const FIT = {
+  desktop: {
+    expanded: { left: "560px", right: "48px", top: "56px", bottom: "56px" },
+    collapsed: { left: "48px", right: "48px", top: "56px", bottom: "56px" },
+  },
+  mobile: {
+    expanded: { left: "6%", right: "6%", top: "8%", bottom: "8%" },
+    collapsed: { left: "6%", right: "6%", top: "8%", bottom: "8%" },
+  },
+} as const;
+
+function Flow({ writeupCollapsed }: { writeupCollapsed: boolean }) {
   // Nodes/edges live in React Flow's own state so measured dimensions persist
   // across highlight updates — recreating the arrays each render wipes them and
   // makes the floating edges (and thus the whole diagram) flicker on hover.
@@ -153,8 +171,39 @@ function Flow() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(BASE_EDGES);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const { fitView } = useReactFlow();
 
   const focusId = hoveredId ?? selectedId;
+
+  // Read the latest collapsed state without making it a fit dependency, so
+  // toggling the writeup never triggers a re-fit (which would reset zoom/pan).
+  const collapsedRef = useRef(writeupCollapsed);
+  useEffect(() => {
+    collapsedRef.current = writeupCollapsed;
+  }, [writeupCollapsed]);
+
+  const fitPadding = FIT[isMobile ? "mobile" : "desktop"][
+    writeupCollapsed ? "collapsed" : "expanded"
+  ];
+
+  // Track the mobile breakpoint and re-fit only on load / breakpoint changes,
+  // reserving room for the writeup based on its current collapsed state.
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    const padding = FIT[isMobile ? "mobile" : "desktop"][
+      collapsedRef.current ? "collapsed" : "expanded"
+    ];
+    const id = requestAnimationFrame(() => fitView({ padding }));
+    return () => cancelAnimationFrame(id);
+  }, [isMobile, fitView]);
 
   useEffect(() => {
     // The full ingress+egress flow the focused node sits on…
@@ -269,16 +318,12 @@ function Flow() {
         nodesConnectable={false}
         elementsSelectable={false}
         fitView
-        // Reserve space on the left for the floating writeup card so the
-        // diagram lands on the right half of the screen on load.
-        fitViewOptions={{
-          padding: { left: "440px", right: "48px", top: "56px", bottom: "56px" },
-        }}
+        fitViewOptions={{ padding: fitPadding }}
         minZoom={0.15}
         maxZoom={1.75}
         proOptions={{ hideAttribution: false }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={22} size={1} color="#1f1f1f" />
+        <Background variant={BackgroundVariant.Dots} gap={22} size={1.4} color="#3a3a3a" />
         <Controls position="bottom-left" showInteractive={false} />
         <MiniMap
           position="bottom-right"
@@ -296,7 +341,7 @@ function Flow() {
           nodeStrokeWidth={2}
         />
         <Panel position="top-right">
-          <div className="flex flex-col gap-1.5 border border-ink-muted/30 bg-paper/85 px-3 py-2 text-[10px] leading-relaxed text-ink-faint backdrop-blur-sm">
+          <div className="hidden flex-col gap-1.5 border border-ink-muted/30 bg-paper/85 px-3 py-2 text-[10px] leading-relaxed text-ink-faint backdrop-blur-sm sm:flex">
             <span>
               <span className="text-ink-muted">click</span> for details ·{" "}
               <span className="text-ink-muted">hover</span> to trace links ·{" "}
@@ -335,10 +380,10 @@ function Flow() {
 }
 
 /** Interactive nested diagram of the lab cluster. */
-export function LabDiagram() {
+export function LabDiagram({ writeupCollapsed = false }: { writeupCollapsed?: boolean }) {
   return (
     <ReactFlowProvider>
-      <Flow />
+      <Flow writeupCollapsed={writeupCollapsed} />
     </ReactFlowProvider>
   );
 }
