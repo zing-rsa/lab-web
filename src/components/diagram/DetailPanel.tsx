@@ -12,6 +12,42 @@ interface DetailPanelProps {
   onClose: () => void;
 }
 
+/** Compact popup anchored near a node — used on mobile where the slide-in
+ * panel would cover the whole screen and hide the traced paths. */
+export function NodePopup({ selection, onClose }: DetailPanelProps) {
+  const c = selection?.component;
+  if (!selection || !c) return null;
+
+  return (
+    <div className="w-[min(74vw,19rem)] max-h-[46vh] overflow-y-auto border border-ink-muted/40 bg-paper/95 p-3 text-left shadow-2xl backdrop-blur-sm">
+      <div className="flex items-start justify-between gap-2">
+        <p
+          className="flex items-center gap-1.5 text-[9px] tracking-[0.2em]"
+          style={{ color: `${selection.accent}d9` }}
+        >
+          <span
+            className="inline-block h-1.5 w-1.5 rounded-full"
+            style={{ backgroundColor: selection.accent }}
+          />
+          {selection.groupLabel}
+        </p>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close details"
+          className="-mr-0.5 -mt-0.5 text-ink-muted transition-colors hover:text-ink"
+        >
+          [x]
+        </button>
+      </div>
+
+      <h3 className="mt-2 text-sm font-bold text-ink">{c.name}</h3>
+      <p className="mt-0.5 text-[11px] text-ink-muted">{c.kind}</p>
+      <p className="mt-2 text-[11px] leading-relaxed text-ink-muted">{c.summary}</p>
+    </div>
+  );
+}
+
 /** Slide-in panel with the selected component's details. */
 export function DetailPanel({ selection, onClose }: DetailPanelProps) {
   const c = selection?.component;

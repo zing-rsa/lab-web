@@ -14,7 +14,7 @@ export default function Home() {
 
       {/* Writeup floats over the canvas on the left; everything else is the
           interactive diagram (this layer ignores pointer events). */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center p-3 sm:p-6">
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-start p-3 sm:items-center sm:p-6">
         <Hero collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
       </div>
     </main>

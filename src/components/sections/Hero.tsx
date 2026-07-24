@@ -16,7 +16,7 @@ export function Hero({ collapsed, onToggle }: HeroProps) {
       <div
         aria-hidden={collapsed}
         className={clsx(
-          "pointer-events-auto relative flex max-h-[calc(100vh-1.5rem)] w-[min(80vw,24rem)] flex-col overflow-y-auto  bg-paper/70 p-5 shadow-2xl backdrop-blur-md transition-[transform,opacity] duration-300 sm:max-h-[calc(100vh-3rem)] sm:w-[min(88vw,25rem)] sm:p-7",
+          "pointer-events-auto relative flex max-h-[calc(100vh-1.5rem)] w-[min(80vw,24rem)] flex-col overflow-y-auto border border-ink-muted/40 bg-paper/70 p-5 shadow-2xl backdrop-blur-md transition-[transform,opacity] duration-300 sm:max-h-[calc(100vh-3rem)] sm:w-[min(88vw,25rem)] sm:p-7",
           collapsed
             ? "pointer-events-none -translate-x-[calc(100%+1.5rem)] opacity-0"
             : "translate-x-0 opacity-100",
@@ -68,7 +68,7 @@ export function Hero({ collapsed, onToggle }: HeroProps) {
         onClick={onToggle}
         aria-label="Show writeup"
         className={clsx(
-          "absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center border border-ink-muted/40 bg-paper/80 text-lg text-ink-muted shadow-lg backdrop-blur-md transition-opacity duration-300 hover:text-ink sm:left-6",
+          "absolute left-3 top-3 flex h-9 w-9 items-center justify-center border border-ink-muted/40 bg-paper/80 text-lg text-ink-muted shadow-lg backdrop-blur-md transition-opacity duration-300 hover:text-ink sm:left-6 sm:top-1/2 sm:-translate-y-1/2",
           collapsed ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
         )}
       >

@@ -9,6 +9,8 @@ import {
   Controls,
   MiniMap,
   Panel,
+  NodeToolbar,
+  Position,
   MarkerType,
   useNodesState,
   useEdgesState,
@@ -28,7 +30,7 @@ import {
 import { ComponentNode } from "./ComponentNode";
 import { GroupNode } from "./GroupNode";
 import { FloatingEdge } from "./FloatingEdge";
-import { DetailPanel, type Selection } from "./DetailPanel";
+import { DetailPanel, NodePopup, type Selection } from "./DetailPanel";
 
 const nodeTypes = { component: ComponentNode, lane: GroupNode };
 const edgeTypes = { floating: FloatingEdge };
@@ -110,8 +112,7 @@ const BASE_NODES: Node[] = LAID.map((n: LaidNode) => {
     parentId: n.parentId,
     ...(n.parentId ? { extent: "parent" as const } : {}),
     position: { x: n.x, y: n.y },
-    // Containers stay put; only leaf components can be dragged (within them).
-    draggable: !isGroup,
+    draggable: false,
     selectable: false,
     zIndex: isGroup ? 0 : 10,
     style: { width: n.width, height: n.height },
@@ -170,7 +171,9 @@ function Flow({ writeupCollapsed }: { writeupCollapsed: boolean }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(BASE_NODES);
   const [edges, setEdges, onEdgesChange] = useEdgesState(BASE_EDGES);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  // Seed the focus on the internet node so the ingress/egress flow is lit up on
+  // first load, as if it were being hovered; clears on the first interaction.
+  const [hoveredId, setHoveredId] = useState<string | null>("internet");
   const [isMobile, setIsMobile] = useState(false);
   const { fitView } = useReactFlow();
 
@@ -314,7 +317,7 @@ function Flow({ writeupCollapsed }: { writeupCollapsed: boolean }) {
         onNodeMouseEnter={onNodeMouseEnter}
         onNodeMouseLeave={onNodeMouseLeave}
         onPaneClick={onPaneClick}
-        nodesDraggable
+        nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={false}
         fitView
@@ -372,9 +375,24 @@ function Flow({ writeupCollapsed }: { writeupCollapsed: boolean }) {
             </span>
           </div>
         </Panel>
+
+        {/* Mobile: a compact popup anchored to the node instead of the full-
+            screen slide-in, so the traced paths stay visible. */}
+        {isMobile && selectedId ? (
+          <NodeToolbar
+            nodeId={selectedId}
+            isVisible={!!selection}
+            position={Position.Top}
+            offset={10}
+          >
+            <NodePopup selection={selection} onClose={() => setSelectedId(null)} />
+          </NodeToolbar>
+        ) : null}
       </ReactFlow>
 
-      <DetailPanel selection={selection} onClose={() => setSelectedId(null)} />
+      {!isMobile ? (
+        <DetailPanel selection={selection} onClose={() => setSelectedId(null)} />
+      ) : null}
     </>
   );
 }
