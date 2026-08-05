@@ -3,9 +3,7 @@ export interface SiteConfig {
   heading: string;
   intro: string;
   metaDescription: string;
-  /** Link back to the main portfolio site. */
   portfolio: string;
-  /** Public repo for the lab GitOps config. */
   repo: string;
   footer: string;
 }

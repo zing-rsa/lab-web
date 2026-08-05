@@ -1,5 +1,5 @@
 import { clsx } from "@/lib/utils";
-import type { ComponentDef } from "@/lib/diagram-data";
+import type { ComponentDef } from "@/lib/diagram";
 
 export interface Selection {
   component: ComponentDef;
@@ -12,8 +12,6 @@ interface DetailPanelProps {
   onClose: () => void;
 }
 
-/** Compact popup anchored near a node — used on mobile where the slide-in
- * panel would cover the whole screen and hide the traced paths. */
 export function NodePopup({ selection, onClose }: DetailPanelProps) {
   const c = selection?.component;
   if (!selection || !c) return null;
@@ -48,7 +46,6 @@ export function NodePopup({ selection, onClose }: DetailPanelProps) {
   );
 }
 
-/** Slide-in panel with the selected component's details. */
 export function DetailPanel({ selection, onClose }: DetailPanelProps) {
   const c = selection?.component;
 

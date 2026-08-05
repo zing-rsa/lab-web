@@ -10,11 +10,6 @@ export interface GroupNodeData {
   [key: string]: unknown;
 }
 
-/**
- * A nesting container. Transparent fill so edges crossing it stay visible;
- * accent-tinted border + label mark the layer. Node-pool boxes are clickable
- * for a detail card.
- */
 export function GroupNode({ data }: NodeProps) {
   const d = data as GroupNodeData;
 
@@ -30,7 +25,6 @@ export function GroupNode({ data }: NodeProps) {
         backgroundColor: d.selected ? `${d.accent}14` : `${d.accent}0a`,
       }}
     >
-      {/* Hidden handles so floating edges can attach to a container node. */}
       <Handle
         type="target"
         position={Position.Top}

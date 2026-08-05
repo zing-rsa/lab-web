@@ -1,10 +1,5 @@
 import type { Config } from "tailwindcss";
 
-/**
- * Black-and-white terminal palette shared with the portfolio site. Everything
- * is a shade of a single ink/paper pair so the site stays strictly monochrome;
- * "accent" shades are only used for low-/high-lighting, never colour.
- */
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}", "./site.config.ts"],
   theme: {
@@ -36,9 +31,6 @@ const config: Config = {
       animation: {
         blink: "blink 1s step-end infinite",
         dash: "dash 0.9s linear infinite",
-      },
-      maxWidth: {
-        content: "72rem",
       },
     },
   },

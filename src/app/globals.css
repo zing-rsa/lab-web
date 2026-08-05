@@ -13,7 +13,6 @@
 
   body {
     @apply bg-paper text-ink font-mono antialiased;
-    /* Subtle terminal scanline texture — extremely faint, never flashy. */
     background-image: linear-gradient(
       rgba(232, 232, 232, 0.02) 1px,
       transparent 1px
@@ -26,28 +25,6 @@
   }
 }
 
-@layer utilities {
-  /* Scroll-driven fade used by the FadeIn component. */
-  .fade-init {
-    opacity: 0;
-    transform: translateY(12px);
-    transition:
-      opacity 700ms ease,
-      transform 700ms ease;
-  }
-
-  .fade-in {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  .fade-out {
-    opacity: 0.15;
-    transform: translateY(6px);
-  }
-}
-
-/* ---- React Flow: re-theme to the monochrome ink/paper palette ---- */
 .react-flow {
   --xy-background-color: theme(colors.paper.DEFAULT);
   --xy-edge-stroke-default: theme(colors.ink.faint);
@@ -66,7 +43,6 @@
   color: theme(colors.ink.faint);
 }
 
-/* Controls */
 .react-flow__controls {
   box-shadow: none;
   border: 1px solid rgb(138 138 138 / 0.3);
@@ -87,7 +63,6 @@
   fill: currentColor;
 }
 
-/* Minimap */
 .react-flow__minimap {
   background: theme(colors.paper.faint);
   border: 1px solid rgb(138 138 138 / 0.3);
@@ -100,14 +75,6 @@
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
-  }
-
-  .fade-init,
-  .fade-in,
-  .fade-out {
-    opacity: 1 !important;
-    transform: none !important;
-    transition: none !important;
   }
 
   .react-flow__edge-path {

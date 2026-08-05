@@ -6,21 +6,11 @@ import { clsx } from "@/lib/utils";
 interface TypedHeadingProps {
   text: string;
   className?: string;
-  /** Milliseconds between characters. */
   speed?: number;
   as?: "h1" | "h2";
 }
 
-/**
- * Types `text` out character-by-character on mount with a blinking cursor.
- * Respects `prefers-reduced-motion` (full string shown immediately).
- */
-export function TypedHeading({
-  text,
-  className,
-  speed = 90,
-  as = "h1",
-}: TypedHeadingProps) {
+export function TypedHeading({ text, className, speed = 90, as = "h1" }: TypedHeadingProps) {
   const [count, setCount] = useState(0);
   const Tag = as;
 

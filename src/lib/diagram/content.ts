@@ -1,145 +1,6 @@
-/**
- * Nested-containment model of the lab cluster rendered by the React Flow
- * diagram.
- *
- * Containment mirrors where things actually run: Hetzner Cloud ▸ private
- * network ▸ the two k3s node pools (control plane / workers), with each
- * workload nested under the node pool it schedules on. Layout is computed by a
- * small box-packing pass (`buildLayout`) that sizes each container from its
- * children and centres every row.
- *
- * Responsibility (gitops, platform, secrets, observability, data, apps) is not
- * a container any more — it is carried understatedly by each component's
- * `accent` colour, so the diagram groups by node yet still reads by concern.
- *
- * Edges are tagged: `flow: "ingress" | "egress"` are the animated, coloured
- * request/egress paths; untagged edges are internal dependency links shown
- * only when a component is focused.
- */
-
-export interface ComponentDef {
-  id: string;
-  name: string;
-  /** One-line type descriptor shown under the name. */
-  kind: string;
-  namespace?: string;
-  version?: string;
-  /** Replica/instance annotation, e.g. "×3" or "1–3". */
-  count?: string;
-  summary: string;
-  /** Responsibility colour; overrides the containing box's accent. */
-  accent?: AccentKey;
-}
-
-export interface BoxSpec {
-  id: string;
-  label: string;
-  accent: AccentKey;
-  /** Dashed border, e.g. for the ephemeral application-pods container. */
-  dashed?: boolean;
-  /** Grow to fill the parent's inner width (equalises sibling boxes). */
-  stretch?: boolean;
-  /** Children per row (ids reference other boxes or components). */
-  rows: string[][];
-  /** When set, the box is a clickable node pool with its own detail card. */
-  kind?: string;
-  namespace?: string;
-  version?: string;
-  count?: string;
-  summary?: string;
-}
-
-export type FlowKind = "ingress" | "egress" | "admin";
-
-export interface EdgeDef {
-  source: string;
-  target: string;
-  /** Coloured animated path; omitted = internal dependency link. */
-  flow?: FlowKind;
-  /** Optional label rendered on the edge (typically on the first segment). */
-  label?: string;
-  /** Vertical nudge (px) for the label; negative moves it up. */
-  labelDy?: number;
-  /**
-   * Anchor the internet-side endpoint at this fraction (0–1) of the internet
-   * node's bottom edge, so the flows fan out with even spacing.
-   */
-  internetAnchor?: number;
-  /**
-   * Route straight down: exit the source's bottom edge at this x-fraction and
-   * drop vertically into the target's top edge.
-   */
-  downFrac?: number;
-  /**
-   * Enter the target on its top edge at this x-fraction (rather than a side
-   * midpoint), e.g. to line the entry up with a downstream exit.
-   */
-  targetTopFrac?: number;
-  /**
-   * Enter the target on its bottom edge at this x-fraction, e.g. to line a
-   * bottom entry up vertically with the node's top exit.
-   */
-  targetBottomFrac?: number;
-  /**
-   * Exit the source on its top edge at this x-fraction, e.g. to line a top
-   * exit up vertically with the node's bottom entry.
-   */
-  sourceTopFrac?: number;
-  /**
-   * Exit the source on its bottom edge at this x-fraction, e.g. to line a
-   * bottom exit up vertically with the node's top entry.
-   */
-  sourceBottomFrac?: number;
-}
-
-export type AccentKey =
-  | "external"
-  | "hetzner"
-  | "nodes"
-  | "kubernetes"
-  | "gitops"
-  | "platform"
-  | "secrets"
-  | "observability"
-  | "data"
-  | "apps";
-
-/** Muted, desaturated accents that read on the near-black paper background. */
-export const ACCENTS: Record<AccentKey, string> = {
-  external: "#8a8a8a",
-  hetzner: "#d78c8c",
-  nodes: "#cbb173",
-  kubernetes: "#7aa7db",
-  gitops: "#b394db",
-  platform: "#86c08f",
-  secrets: "#d9b072",
-  observability: "#db9b73",
-  data: "#74bcc9",
-  apps: "#8fca9d",
-};
-
-export const FLOW_COLORS: Record<FlowKind, string> = {
-  ingress: "#63b8cf",
-  egress: "#d1a05f",
-  admin: "#d05f5f",
-};
-
-/** Human label for a component's responsibility, shown in the detail panel. */
-export const RESPONSIBILITY_LABELS: Record<AccentKey, string> = {
-  external: "external",
-  hetzner: "Hetzner Cloud",
-  nodes: "cluster node",
-  kubernetes: "gateway · ingress",
-  gitops: "gitops",
-  platform: "platform · controllers",
-  secrets: "secrets · storage",
-  observability: "observability",
-  data: "data",
-  apps: "applications",
-};
+import type { BoxSpec, ComponentDef, EdgeDef } from "./types";
 
 export const COMPONENTS: ComponentDef[] = [
-  // --- external edge ---
   {
     id: "internet",
     name: "Internet",
@@ -157,7 +18,6 @@ export const COMPONENTS: ComponentDef[] = [
       "Authoritative DNS for zingdev.xyz. Records are managed automatically by external-dns; cert-manager solves ACME DNS-01 challenges here for wildcard TLS.",
   },
 
-  // --- Hetzner Cloud edge ---
   {
     id: "hetzner-lb",
     name: "Hetzner L4 Load Balancer",
@@ -184,7 +44,6 @@ export const COMPONENTS: ComponentDef[] = [
       "Dual-role cx23 host at 10.0.1.1: SSH jump host into the private-only nodes and the NAT gateway for the network's 0.0.0.0/0 egress route. Every node reaches the internet through it.",
   },
 
-  // --- control plane node pool ---
   {
     id: "kube-system",
     name: "Kube System",
@@ -237,7 +96,6 @@ export const COMPONENTS: ComponentDef[] = [
       "Hetzner-backed autoscaler managing the worker pool (min 1 / max 3, cx33). Runs on control-plane nodes so it can bootstrap workers from zero pressure. Deployed by Terraform.",
   },
 
-  // --- worker node pool ---
   {
     id: "flux",
     name: "Flux System",
@@ -339,7 +197,6 @@ export const COMPONENTS: ComponentDef[] = [
       "Trace store — monolithic, filesystem-backed, 7-day retention. Receives OTLP traces from the Alloy DaemonSet and is queried by Grafana.",
   },
 
-  // --- application pods ---
   {
     id: "app1",
     name: "App 1",
@@ -366,11 +223,6 @@ export const COMPONENTS: ComponentDef[] = [
   },
 ];
 
-/**
- * Containment tree. `rows` reference child boxes or components — each row is
- * centred by the layout pass. Workloads nest under the node pool they run on;
- * responsibility is conveyed by each component's accent colour, not by a box.
- */
 export const BOXES: BoxSpec[] = [
   {
     id: "hetzner-cloud",
@@ -412,12 +264,7 @@ export const BOXES: BoxSpec[] = [
     count: "1–3",
     summary:
       "The autoscaled cx33 worker pool (min 1 / max 3) managed by the cluster autoscaler. Runs Flux, the platform operators, the observability and data layers, and application workloads.",
-    rows: [
-      ["platform-ops"],
-      ["observability-stack"],
-      ["app-pods"],
-      ["cnpg"],
-    ],
+    rows: [["platform-ops"], ["observability-stack"], ["app-pods"], ["cnpg"]],
   },
   {
     id: "platform-ops",
@@ -456,31 +303,16 @@ export const BOXES: BoxSpec[] = [
   },
 ];
 
-/** Top-level nodes, stacked vertically and centred by the layout pass. */
 export const ROOTS: string[] = ["internet", "cloudflare-dns", "hetzner-cloud"];
 
-/**
- * Post-layout absolute horizontal shifts (applied before alignments). Pushes
- * the firewall well to the right so the admin/egress corridor is clear of the
- * central public-ingress column instead of routing behind it.
- */
-export const OFFSETS: { id: string; dx: number }[] = [
-  { id: "hetzner-firewall", dx: 100 },
-];
+export const OFFSETS: { id: string; dx: number }[] = [{ id: "hetzner-firewall", dx: 100 }];
 
-/**
- * Post-layout horizontal nudges: shift `id` so its centre lines up with
- * `toId`'s centre — or, when `toId2` is given, the midpoint between the two
- * (e.g. the bastion sitting roughly between the load balancer and firewall).
- * `dx` applies an extra offset after centring.
- */
 export const ALIGNMENTS: { id: string; toId: string; toId2?: string; dx?: number }[] = [
   { id: "bastion", toId: "hetzner-lb", toId2: "hetzner-firewall", dx: 30 },
   { id: "cloudflare-dns", toId: "hetzner-lb" },
 ];
 
 export const EDGES: EdgeDef[] = [
-  // --- public ingress: request path in ---
   {
     source: "internet",
     target: "cloudflare-dns",
@@ -492,7 +324,6 @@ export const EDGES: EdgeDef[] = [
   { source: "hetzner-lb", target: "envoy-gateway", flow: "ingress" },
   { source: "envoy-gateway", target: "app-pods", flow: "ingress" },
 
-  // --- controlled/admin ingress ---
   {
     source: "internet",
     target: "hetzner-firewall",
@@ -515,7 +346,6 @@ export const EDGES: EdgeDef[] = [
     downFrac: 0.8,
   },
 
-  // --- application egress: NAT back out to the internet ---
   { source: "app-pods", target: "bastion", flow: "egress", targetBottomFrac: 0.3 },
   {
     source: "bastion",
@@ -527,7 +357,6 @@ export const EDGES: EdgeDef[] = [
     sourceTopFrac: 0.3,
   },
 
-  // --- internal dependency links (revealed on hover/focus) ---
   { source: "flux", target: "envoy-gateway" },
   { source: "flux", target: "external-dns" },
   { source: "flux", target: "cert-manager" },
@@ -549,14 +378,11 @@ export const EDGES: EdgeDef[] = [
   { source: "hetzner-ccm", target: "hetzner-lb" },
   { source: "cluster-autoscaler", target: "worker-pool" },
 
-  // Observability: Grafana queries the three backends…
   { source: "grafana", target: "prometheus" },
   { source: "grafana", target: "loki" },
   { source: "grafana", target: "tempo" },
-  // …the Alloy DaemonSet ships logs/traces into Loki/Tempo…
   { source: "alloy", target: "loki" },
   { source: "alloy", target: "tempo" },
-  // …and the telemetry producers emit into the backends.
   { source: "app-pods", target: "prometheus" },
   { source: "app-pods", target: "loki" },
   { source: "app-pods", target: "tempo" },
@@ -569,238 +395,3 @@ export const EDGES: EdgeDef[] = [
   { source: "external-dns", target: "app-pods" },
   { source: "cert-manager", target: "app-pods" },
 ];
-
-// --- box-packing layout ---
-
-const LEAF_W = 190;
-const LEAF_H = 82;
-const HEADER = 32;
-const PAD = 32;
-const GAP = 20;
-
-const LEAF_MAP = new Map(COMPONENTS.map((c) => [c.id, c]));
-const BOX_MAP = new Map(BOXES.map((b) => [b.id, b]));
-const isBox = (id: string) => BOX_MAP.has(id);
-
-export interface LaidNode {
-  id: string;
-  nodeKind: "group" | "component";
-  parentId?: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  accent: string;
-  /** dashed container border. */
-  dashed?: boolean;
-  /** group label (containers). */
-  label?: string;
-  /** leaf detail + the containing group's label. */
-  component?: ComponentDef;
-  groupLabel?: string;
-}
-
-function measure(
-  id: string,
-  cache: Map<string, { w: number; h: number }>,
-): { w: number; h: number } {
-  const hit = cache.get(id);
-  if (hit) return hit;
-
-  if (!isBox(id)) {
-    const s = { w: LEAF_W, h: LEAF_H };
-    cache.set(id, s);
-    return s;
-  }
-
-  const box = BOX_MAP.get(id)!;
-  let innerW = 0;
-  let innerH = 0;
-  box.rows.forEach((row, ri) => {
-    let rowW = 0;
-    let rowH = 0;
-    row.forEach((cid, ci) => {
-      const s = measure(cid, cache);
-      rowW += s.w + (ci > 0 ? GAP : 0);
-      rowH = Math.max(rowH, s.h);
-    });
-    innerW = Math.max(innerW, rowW);
-    innerH += rowH + (ri > 0 ? GAP : 0);
-  });
-
-  const s = { w: innerW + 2 * PAD, h: HEADER + innerH + PAD };
-  cache.set(id, s);
-  return s;
-}
-
-/** Effective placement width of a child, honouring `stretch`. */
-function childWidth(
-  cid: string,
-  parentInnerW: number,
-  cache: Map<string, { w: number; h: number }>,
-): number {
-  if (isBox(cid) && BOX_MAP.get(cid)!.stretch) return parentInnerW;
-  return measure(cid, cache).w;
-}
-
-function placeBox(
-  id: string,
-  parentId: string | undefined,
-  x: number,
-  y: number,
-  cache: Map<string, { w: number; h: number }>,
-  out: LaidNode[],
-  forcedWidth?: number,
-): void {
-  const box = BOX_MAP.get(id)!;
-  const size = measure(id, cache);
-  const width = forcedWidth ?? size.w;
-  out.push({
-    id,
-    nodeKind: "group",
-    parentId,
-    x,
-    y,
-    width,
-    height: size.h,
-    accent: ACCENTS[box.accent],
-    dashed: box.dashed,
-    label: box.label,
-    // A container with a summary carries its own detail card so it stays clickable.
-    ...(box.summary
-      ? {
-          component: {
-            id: box.id,
-            name: box.label,
-            kind: box.kind ?? "",
-            namespace: box.namespace,
-            version: box.version,
-            count: box.count,
-            summary: box.summary,
-          },
-          groupLabel: RESPONSIBILITY_LABELS[box.accent],
-        }
-      : {}),
-  });
-
-  const innerW = width - 2 * PAD;
-
-  let cy = HEADER;
-  for (const row of box.rows) {
-    let rowH = 0;
-    let rowW = 0;
-    for (const cid of row) {
-      const cs = measure(cid, cache);
-      rowH = Math.max(rowH, cs.h);
-      rowW += childWidth(cid, innerW, cache);
-    }
-    rowW += GAP * (row.length - 1);
-
-    // Centre the row within the box's inner width.
-    let cx = PAD + (innerW - rowW) / 2;
-    for (const cid of row) {
-      const cs = measure(cid, cache);
-      const cw = childWidth(cid, innerW, cache);
-      const childY = cy + (rowH - cs.h) / 2;
-      if (isBox(cid)) {
-        placeBox(cid, id, cx, childY, cache, out, cw);
-      } else {
-        const c = LEAF_MAP.get(cid)!;
-        out.push({
-          id: cid,
-          nodeKind: "component",
-          parentId: id,
-          x: cx,
-          y: childY,
-          width: cw,
-          height: cs.h,
-          accent: ACCENTS[c.accent ?? box.accent],
-          component: c,
-          groupLabel: RESPONSIBILITY_LABELS[c.accent ?? box.accent],
-        });
-      }
-      cx += cw + GAP;
-    }
-    cy += rowH + GAP;
-  }
-}
-
-const ROOT_GAP = 56;
-
-/**
- * Produce all positioned nodes (parents precede children). Top-level nodes
- * (`ROOTS`, boxes or leaves) are stacked vertically and centred on the widest
- * one, mirroring the internet ▸ DNS ▸ cloud flow of the source diagram.
- */
-export function buildLayout(): LaidNode[] {
-  const cache = new Map<string, { w: number; h: number }>();
-  const out: LaidNode[] = [];
-
-  const rootIds = ROOTS.length
-    ? ROOTS
-    : (() => {
-        const nested = new Set(BOXES.flatMap((b) => b.rows.flat()).filter(isBox));
-        return BOXES.filter((b) => !nested.has(b.id)).map((b) => b.id);
-      })();
-
-  const sizes = rootIds.map((id) => measure(id, cache));
-  const maxW = Math.max(0, ...sizes.map((s) => s.w));
-
-  let y = 0;
-  rootIds.forEach((id, i) => {
-    const size = sizes[i];
-    const x = (maxW - size.w) / 2;
-    if (isBox(id)) {
-      placeBox(id, undefined, x, y, cache, out);
-    } else {
-      const c = LEAF_MAP.get(id)!;
-      out.push({
-        id,
-        nodeKind: "component",
-        x,
-        y,
-        width: size.w,
-        height: size.h,
-        accent: ACCENTS[c.accent ?? "external"],
-        component: c,
-        groupLabel: RESPONSIBILITY_LABELS[c.accent ?? "external"],
-      });
-    }
-    y += size.h + ROOT_GAP;
-  });
-
-  // Absolute centre-x of a laid node (positions are parent-relative).
-  const byId = new Map(out.map((n) => [n.id, n]));
-  const absCenterX = (node: LaidNode): number => {
-    let x = node.x;
-    let p = node.parentId;
-    while (p) {
-      const pn = byId.get(p);
-      if (!pn) break;
-      x += pn.x;
-      p = pn.parentId;
-    }
-    return x + node.width / 2;
-  };
-
-  for (const { id, dx } of OFFSETS) {
-    const node = byId.get(id);
-    if (node) node.x += dx;
-  }
-
-  for (const { id, toId, toId2, dx } of ALIGNMENTS) {
-    const node = byId.get(id);
-    const target = byId.get(toId);
-    if (!node || !target) continue;
-    let targetCenter = absCenterX(target);
-    if (toId2) {
-      const target2 = byId.get(toId2);
-      if (target2) targetCenter = (targetCenter + absCenterX(target2)) / 2;
-    }
-    // A horizontal translation is identical in absolute and parent-relative
-    // space, so nudging the node's own x is enough (children move with it).
-    node.x += targetCenter - absCenterX(node) + (dx ?? 0);
-  }
-
-  return out;
-}

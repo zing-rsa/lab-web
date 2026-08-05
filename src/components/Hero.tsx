@@ -1,7 +1,7 @@
 "use client";
 
 import { siteConfig } from "@/site.config";
-import { TypedHeading } from "@/components/ui";
+import { TypedHeading } from "@/components/TypedHeading";
 import { clsx } from "@/lib/utils";
 
 interface HeroProps {
@@ -9,7 +9,6 @@ interface HeroProps {
   onToggle: () => void;
 }
 
-/** Collapsible writeup card that hovers over the diagram canvas. */
 export function Hero({ collapsed, onToggle }: HeroProps) {
   return (
     <>

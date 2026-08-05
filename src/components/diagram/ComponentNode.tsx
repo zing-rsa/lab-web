@@ -1,6 +1,6 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { clsx } from "@/lib/utils";
-import type { ComponentDef } from "@/lib/diagram-data";
+import type { ComponentDef } from "@/lib/diagram";
 
 export interface ComponentNodeData extends Omit<ComponentDef, "accent"> {
   accent: string;
@@ -11,7 +11,6 @@ export interface ComponentNodeData extends Omit<ComponentDef, "accent"> {
   [key: string]: unknown;
 }
 
-/** A single cluster component, styled as a terminal card with an accent edge. */
 export function ComponentNode({ data }: NodeProps) {
   const d = data as ComponentNodeData;
 
@@ -28,7 +27,6 @@ export function ComponentNode({ data }: NodeProps) {
       )}
       style={d.selected ? { boxShadow: `0 0 0 1px ${d.accent}` } : undefined}
     >
-      {/* accent edge */}
       <span
         className="absolute left-0 top-0 h-full w-[3px]"
         style={{ backgroundColor: d.accent }}
