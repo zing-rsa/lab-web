@@ -151,15 +151,21 @@ func main() {
 }
 
 func heartbeat(ctx context.Context, nc *nats.Conn, subject, id string) {
-	t := time.NewTicker(2 * time.Second)
+	beat := func() {
+		b, _ := json.Marshal(map[string]any{"id": id, "processed": processedCount.Load()})
+		_ = nc.Publish(subject, b)
+	}
+	// Announce presence immediately so a freshly-scaled pod shows up in the live count within a
+	// second, then beat once a second (the gateway ages workers out after a short TTL).
+	beat()
+	t := time.NewTicker(time.Second)
 	defer t.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			b, _ := json.Marshal(map[string]any{"id": id, "processed": processedCount.Load()})
-			_ = nc.Publish(subject, b)
+			beat()
 		}
 	}
 }

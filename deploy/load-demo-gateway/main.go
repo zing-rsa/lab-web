@@ -211,7 +211,7 @@ func main() {
 		globalTP:  globalTP,
 		clients:   make(map[*client]struct{}),
 		processed: &rateFromSeq{},
-		workers:   newWorkerSet(6 * time.Second),
+		workers:   newWorkerSet(3 * time.Second),
 		limitMsg:  []byte(`{"t":"limit"}`),
 	}
 	if promURL != "" {
@@ -361,20 +361,23 @@ func (a *app) snapshot(ctx context.Context) []byte {
 	}
 
 	processedTps := -1.0
-	replicas := -1.0
 	if a.prom != nil {
 		if v, ok := a.prom.query(ctx, a.prom.processedQuery); ok {
 			processedTps = v
-		}
-		if v, ok := a.prom.query(ctx, a.prom.replicasQuery); ok {
-			replicas = v
 		}
 	}
 	if processedTps < 0 {
 		processedTps = a.processed.rate(processedSeq)
 	}
-	if replicas < 0 {
-		replicas = float64(a.workers.count())
+
+	// Replica count comes from near-real-time NATS worker heartbeats (updated within ~1s of a pod
+	// starting/stopping). Prometheus' kube_deployment_status_replicas_available lags KEDA by the
+	// kube-state-metrics scrape interval, so it's only a cold-start fallback before any heartbeat.
+	replicas := float64(a.workers.count())
+	if replicas <= 0 && a.prom != nil {
+		if v, ok := a.prom.query(ctx, a.prom.replicasQuery); ok {
+			replicas = v
+		}
 	}
 
 	snap := map[string]any{
