@@ -26,7 +26,9 @@ spec:
   triggers:
     - type: nats-jetstream
       metadata:
-        natsServerMonitoringEndpoint: "nats.nats.svc.cluster.local:8222"
+        # Monitoring (8222) is only exposed on the headless service; the ClusterIP `nats` service
+        # publishes the client port (4222) only.
+        natsServerMonitoringEndpoint: "nats-headless.nats.svc.cluster.local:8222"
         account: "$G"
         stream: "TRANSACTIONS"
         consumer: "txworker"
