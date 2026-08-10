@@ -1,0 +1,3 @@
+# The k8s manifests live next to the Go source here; keep them out of the build context.
+base/
+overlays/

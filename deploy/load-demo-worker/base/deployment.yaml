@@ -1,0 +1,47 @@
+# load-demo-worker: consumes dummy transactions from NATS JetStream and burns a tunable amount of
+# CPU per message. KEDA owns the replica count (see ../<env>/scaledobject.yaml), so `replicas` is
+# deliberately omitted — setting it would make Flux fight the autoscaler. Namespace and image tag
+# are set by the per-env overlay.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: load-demo-worker
+  labels:
+    app: load-demo-worker
+spec:
+  selector:
+    matchLabels:
+      app: load-demo-worker
+  template:
+    metadata:
+      labels:
+        app: load-demo-worker
+    spec:
+      imagePullSecrets:
+        - name: ghcr
+      containers:
+        - name: load-demo-worker
+          image: ghcr.io/zing-rsa/load-demo-worker
+          env:
+            - { name: NATS_URL, value: "nats://nats.nats.svc.cluster.local:4222" }
+            # CPU cost per transaction. Raise to spread a given offered load across more pods
+            # (lower per-pod throughput); lower to need fewer pods. Starting point — tune on dev
+            # so ~500 TPS offered drives the backlog up to ~maxReplicas before draining.
+            - { name: WORK_ITERS, value: "50000" }
+          ports:
+            - { name: metrics, containerPort: 9090 }
+          resources:
+            requests:
+              cpu: 50m
+              memory: 48Mi
+            limits:
+              cpu: 400m
+              memory: 128Mi
+          readinessProbe:
+            httpGet: { path: /healthz, port: metrics }
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: metrics }
+            initialDelaySeconds: 5
+            periodSeconds: 20

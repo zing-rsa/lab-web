@@ -1,0 +1,13 @@
+# Same-origin routing: dev.infra.zingdev.xyz/loadgen -> load-demo-gateway, while lab-web's own
+# HTTPRoute keeps the rest of that host. Both attach to the infra-https listener from infra-dev;
+# Envoy merges them and the more specific /loadgen prefix wins. Envoy passes WebSocket upgrades.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: { name: load-demo-gateway }
+spec:
+  parentRefs: [{ name: main, namespace: envoy-gateway-system, sectionName: infra-https }]
+  hostnames: [dev.infra.zingdev.xyz]
+  rules:
+    - matches:
+        - path: { type: PathPrefix, value: /loadgen }
+      backendRefs: [{ name: load-demo-gateway, port: 80 }]

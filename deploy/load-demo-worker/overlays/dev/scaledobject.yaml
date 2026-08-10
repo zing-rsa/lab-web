@@ -1,0 +1,33 @@
+# KEDA scales load-demo-worker on NATS JetStream backlog. When offered load outpaces the current
+# pods the consumer's pending count climbs past lagThreshold and KEDA adds replicas (up to max);
+# when a burst ends and the backlog drains, the fast scaleDown behaviour returns to the floor.
+#
+# maxReplicaCount is deliberately small and the pod requests tiny (see base/deployment.yaml) so
+# the whole scaled set always fits the warm worker node — pods scale, nodes do not.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: load-demo-worker
+spec:
+  scaleTargetRef:
+    name: load-demo-worker
+  minReplicaCount: 1
+  maxReplicaCount: 5
+  pollingInterval: 5
+  cooldownPeriod: 30
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          # Return to the floor quickly after a burst so the demo visibly scales back down.
+          stabilizationWindowSeconds: 30
+          policies:
+            - { type: Percent, value: 100, periodSeconds: 15 }
+  triggers:
+    - type: nats-jetstream
+      metadata:
+        natsServerMonitoringEndpoint: "nats.nats.svc.cluster.local:8222"
+        account: "$G"
+        stream: "TRANSACTIONS"
+        consumer: "txworker"
+        lagThreshold: "30"

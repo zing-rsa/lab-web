@@ -1,0 +1,13 @@
+# ClusterIP for the load-demo-worker metrics endpoint — the ServiceMonitor scrapes this so
+# transactions_processed_total lands in Prometheus (and thus the live TPS graph).
+apiVersion: v1
+kind: Service
+metadata:
+  name: load-demo-worker
+  labels:
+    app: load-demo-worker
+spec:
+  selector:
+    app: load-demo-worker
+  ports:
+    - { name: metrics, port: 9090, targetPort: metrics }

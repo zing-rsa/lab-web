@@ -1,0 +1,14 @@
+# Env-specific config for dev. ALLOWED_ORIGINS pins the WebSocket origin check to the dev host;
+# WORKER_NAMESPACE tells the gateway where to read load-demo-worker's replica count in Prometheus.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: load-demo-gateway
+spec:
+  template:
+    spec:
+      containers:
+        - name: load-demo-gateway
+          env:
+            - { name: ALLOWED_ORIGINS, value: "dev.infra.zingdev.xyz" }
+            - { name: WORKER_NAMESPACE, value: "infra-dev" }

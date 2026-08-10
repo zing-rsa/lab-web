@@ -1,0 +1,15 @@
+# Scrape the gateway's /metrics (loadgen_received_total, active connections) into Prometheus.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: load-demo-gateway
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: load-demo-gateway
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 10s

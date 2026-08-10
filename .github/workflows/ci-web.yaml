@@ -1,7 +1,13 @@
-name: ci
+# CI for the website. Build the image, deploy dev on push / prod on release, via the lab repo's
+# reusable workflows. Runs only when site source changes — the manifests under deploy/web are
+# reconciled by Flux directly, and the other apps live under deploy/.
+name: ci-web
 on:
   pull_request:
-  push: { branches: [main] }
+    paths-ignore: [deploy/**, docs/**]
+  push:
+    branches: [main]
+    paths-ignore: [deploy/**, docs/**]
   release: { types: [published] }
 jobs:
   build:
@@ -15,6 +21,7 @@ jobs:
     with:
       env: dev
       tag: ${{ github.sha }}
+      overlay_path: deploy/web/overlays/dev
   deploy-prod:
     if: github.event_name == 'release'
     needs: build
@@ -23,3 +30,4 @@ jobs:
     with:
       env: prod
       tag: ${{ github.event.release.tag_name }}
+      overlay_path: deploy/web/overlays/prod

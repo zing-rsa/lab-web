@@ -1,0 +1,15 @@
+# Scrape load-demo-worker's /metrics into the kube-prometheus-stack Prometheus. The release label
+# matches the stack's serviceMonitorSelector so the operator picks it up.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: load-demo-worker
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: load-demo-worker
+  endpoints:
+    - port: metrics
+      interval: 10s

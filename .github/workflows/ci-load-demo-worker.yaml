@@ -1,0 +1,38 @@
+# CI for the load-demo scaled worker. Same shape as web.yaml; monitors only its Go source
+# (not the base/overlays manifests, which Flux reconciles directly).
+name: ci-load-demo-worker
+on:
+  pull_request:
+    paths: [deploy/load-demo-worker/*.go, deploy/load-demo-worker/go.*, deploy/load-demo-worker/Dockerfile, .github/workflows/ci-load-demo-worker.yaml]
+  push:
+    branches: [main]
+    paths: [deploy/load-demo-worker/*.go, deploy/load-demo-worker/go.*, deploy/load-demo-worker/Dockerfile, .github/workflows/ci-load-demo-worker.yaml]
+  release: { types: [published] }
+jobs:
+  build:
+    permissions: { contents: read, packages: write }
+    uses: zing-rsa/lab/.github/workflows/build.yml@main
+    with:
+      image: ghcr.io/zing-rsa/load-demo-worker
+      context: deploy/load-demo-worker
+      dockerfile: deploy/load-demo-worker/Dockerfile
+  deploy-dev:
+    if: github.event_name == 'push'
+    needs: build
+    permissions: { contents: write }
+    uses: zing-rsa/lab/.github/workflows/deploy.yml@main
+    with:
+      env: dev
+      tag: ${{ github.sha }}
+      image: ghcr.io/zing-rsa/load-demo-worker
+      overlay_path: deploy/load-demo-worker/overlays/dev
+  deploy-prod:
+    if: github.event_name == 'release'
+    needs: build
+    permissions: { contents: write }
+    uses: zing-rsa/lab/.github/workflows/deploy.yml@main
+    with:
+      env: prod
+      tag: ${{ github.event.release.tag_name }}
+      image: ghcr.io/zing-rsa/load-demo-worker
+      overlay_path: deploy/load-demo-worker/overlays/prod
