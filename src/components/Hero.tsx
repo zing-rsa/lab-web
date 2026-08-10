@@ -29,10 +29,10 @@ export function Hero({ collapsed, onToggle }: HeroProps) {
           <button
             type="button"
             onClick={onToggle}
-            aria-label="Collapse writeup"
-            className="-mr-1 -mt-1 shrink-0 text-lg leading-none text-ink-muted transition-colors hover:text-ink"
+            aria-label="Close writeup"
+            className="-mr-1 -mt-1 shrink-0 text-sm leading-none text-ink-muted transition-colors hover:text-ink"
           >
-            «
+            [x]
           </button>
         </div>
 

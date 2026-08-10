@@ -14,6 +14,41 @@ export interface ComponentNodeData extends Omit<ComponentDef, "accent"> {
 export function ComponentNode({ data }: NodeProps) {
   const d = data as ComponentNodeData;
 
+  if (d.compact) {
+    const visible = d.visible !== false;
+    return (
+      <div
+        className={clsx(
+          "group relative flex h-full w-full items-center justify-center gap-1.5 overflow-hidden border bg-paper px-2 transition-all duration-300 hover:border-ink",
+          d.selected ? "border-ink" : d.neighbor ? "border-ink-muted/80" : "border-ink-muted/40",
+        )}
+        style={{
+          opacity: visible ? (d.dimmed ? 0.25 : 1) : 0,
+          transform: visible ? "scale(1)" : "scale(0.8)",
+          ...(d.selected ? { boxShadow: `0 0 0 1px ${d.accent}` } : {}),
+        }}
+      >
+        <Handle
+          type="target"
+          position={Position.Top}
+          isConnectable={false}
+          className="!h-1 !w-1 !border-0 !bg-transparent"
+        />
+        <span
+          className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+          style={{ backgroundColor: d.accent }}
+        />
+        <span className="truncate text-[10px] leading-tight text-ink">{d.name}</span>
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          isConnectable={false}
+          className="!h-1 !w-1 !border-0 !bg-transparent"
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className={clsx(

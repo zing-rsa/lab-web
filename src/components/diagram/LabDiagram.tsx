@@ -11,9 +11,11 @@ import {
   Panel,
   NodeToolbar,
   Position,
+  MarkerType,
   useNodesState,
   useEdgesState,
   useReactFlow,
+  type Edge,
   type NodeMouseHandler,
 } from "@xyflow/react";
 
@@ -22,6 +24,9 @@ import {
   BASE_NODES,
   DEPENDENCY_EDGE_COLOR,
   LAID_BY_ID,
+  WORKER_POD_IDS,
+  podBoxWidth,
+  podBoxX,
   neighbourhood,
   type FlowKind,
 } from "@/lib/diagram";
@@ -34,6 +39,36 @@ import { DetailPanel, NodePopup, type Selection } from "./DetailPanel";
 const nodeTypes = { component: ComponentNode, lane: GroupNode };
 const edgeTypes = { floating: FloatingEdge };
 
+const MAX_WORKER_PODS = WORKER_POD_IDS.length;
+
+// Purple "live load" path shown only while *this* tab is generating load: it follows the ingress
+// line to the Envoy gateway, diverts into the load-demo gateway, through NATS, then fans out to
+// each live worker pod (one edge per visible pod).
+const LOADPATH_PREFIX = "loadpath-";
+const LOADPATH_COLOR = "#b794f6";
+
+function buildLoadPathEdges(podCount: number): Edge[] {
+  const mk = (source: string, target: string, extra: Record<string, unknown> = {}): Edge => ({
+    id: `${LOADPATH_PREFIX}${source}-${target}`,
+    source,
+    target,
+    type: "floating",
+    zIndex: 40,
+    data: { loadpath: true, ...extra },
+    markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12, color: LOADPATH_COLOR },
+  });
+
+  const edges: Edge[] = [
+    mk("internet", "cloudflare-dns", { internetAnchor: 0.25 }),
+    mk("cloudflare-dns", "hetzner-lb"),
+    mk("hetzner-lb", "envoy-gateway"),
+    mk("envoy-gateway", "load-demo-gateway"),
+    mk("load-demo-gateway", "nats"),
+  ];
+  for (let i = 0; i < podCount; i++) edges.push(mk("nats", WORKER_POD_IDS[i]));
+  return edges;
+}
+
 const FIT = {
   desktop: {
     expanded: { left: "560px", right: "48px", top: "56px", bottom: "56px" },
@@ -45,7 +80,13 @@ const FIT = {
   },
 } as const;
 
-function Flow({ writeupCollapsed }: { writeupCollapsed: boolean }) {
+interface FlowProps {
+  writeupCollapsed: boolean;
+  localLoad: boolean;
+  replicas: number;
+}
+
+function Flow({ writeupCollapsed, localLoad, replicas }: FlowProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(BASE_NODES);
   const [edges, setEdges, onEdgesChange] = useEdgesState(BASE_EDGES);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -105,6 +146,7 @@ function Flow({ writeupCollapsed }: { writeupCollapsed: boolean }) {
 
     setEdges((eds) =>
       eds.map((e) => {
+        if (e.id.startsWith(LOADPATH_PREFIX)) return e;
         const d = e.data as
           | { flow?: FlowKind; highlighted?: boolean; dimmed?: boolean }
           | undefined;
@@ -122,6 +164,42 @@ function Flow({ writeupCollapsed }: { writeupCollapsed: boolean }) {
       }),
     );
   }, [focusId, selectedId, setNodes, setEdges]);
+
+  const podCount = Math.max(1, Math.min(MAX_WORKER_PODS, replicas));
+
+  // Add/remove the purple live-load path edges as this tab starts/stops generating load.
+  useEffect(() => {
+    setEdges((eds) => {
+      const base = eds.filter((e) => !e.id.startsWith(LOADPATH_PREFIX));
+      return localLoad ? [...base, ...buildLoadPathEdges(podCount)] : base;
+    });
+  }, [localLoad, podCount, setEdges]);
+
+  // Grow/shrink the pod-pool box to fit the live replica count (kept centred in app-pods) and
+  // fade pods in/out with it.
+  useEffect(() => {
+    const boxW = podBoxWidth(podCount);
+    const boxX = podBoxX(podCount);
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (n.id === "load-demo-pods") {
+          if (n.style?.width === boxW && n.position.x === boxX) return n;
+          return { ...n, position: { ...n.position, x: boxX }, style: { ...n.style, width: boxW } };
+        }
+        const idx = WORKER_POD_IDS.indexOf(n.id);
+        if (idx === -1) return n;
+        const visible = idx < podCount;
+        const d = n.data as { visible?: boolean };
+        const pointerEvents = visible ? "auto" : "none";
+        if (d.visible === visible && n.style?.pointerEvents === pointerEvents) return n;
+        return {
+          ...n,
+          style: { ...n.style, pointerEvents },
+          data: { ...n.data, visible },
+        };
+      }),
+    );
+  }, [podCount, setNodes]);
 
   const onNodeClick: NodeMouseHandler = useCallback((_, node) => {
     const clickable =
@@ -214,10 +292,24 @@ function Flow({ writeupCollapsed }: { writeupCollapsed: boolean }) {
   );
 }
 
-export function LabDiagram({ writeupCollapsed = false }: { writeupCollapsed?: boolean }) {
+interface LabDiagramProps {
+  writeupCollapsed?: boolean;
+  localLoad?: boolean;
+  replicas?: number;
+}
+
+export function LabDiagram({
+  writeupCollapsed = false,
+  localLoad = false,
+  replicas = 1,
+}: LabDiagramProps) {
   return (
     <ReactFlowProvider>
-      <Flow writeupCollapsed={writeupCollapsed} />
+      <Flow
+        writeupCollapsed={writeupCollapsed}
+        localLoad={localLoad}
+        replicas={replicas}
+      />
     </ReactFlowProvider>
   );
 }

@@ -8,7 +8,8 @@ export type AccentKey =
   | "secrets"
   | "observability"
   | "data"
-  | "apps";
+  | "apps"
+  | "events";
 
 export type FlowKind = "ingress" | "egress" | "admin";
 
@@ -21,6 +22,7 @@ export interface ComponentDef {
   count?: string;
   summary: string;
   accent?: AccentKey;
+  compact?: boolean;
 }
 
 export interface BoxSpec {

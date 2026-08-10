@@ -11,6 +11,7 @@ export const ACCENTS: Record<AccentKey, string> = {
   observability: "#db9b73",
   data: "#74bcc9",
   apps: "#8fca9d",
+  events: "#a98be0",
 };
 
 export const FLOW_COLORS: Record<FlowKind, string> = {
@@ -30,6 +31,7 @@ export const RESPONSIBILITY_LABELS: Record<AccentKey, string> = {
   observability: "observability",
   data: "data",
   apps: "applications",
+  events: "events · messaging",
 };
 
 export const DEPENDENCY_EDGE_COLOR = "#5a5a5a";

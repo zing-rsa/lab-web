@@ -27,10 +27,15 @@ const config: Config = {
         dash: {
           to: { strokeDashoffset: "-12" },
         },
+        loadpathIn: {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
       },
       animation: {
         blink: "blink 1s step-end infinite",
         dash: "dash 0.9s linear infinite",
+        loadpath: "dash 0.9s linear infinite, loadpathIn 320ms ease-out",
       },
     },
   },

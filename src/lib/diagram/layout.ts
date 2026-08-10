@@ -4,6 +4,8 @@ import type { LaidNode } from "./types";
 
 const LEAF_W = 190;
 const LEAF_H = 82;
+const COMPACT_W = 152;
+const COMPACT_H = 46;
 const HEADER = 32;
 const PAD = 32;
 const GAP = 20;
@@ -20,7 +22,10 @@ function measure(id: string, cache: Map<string, Size>): Size {
   if (hit) return hit;
 
   if (!isBox(id)) {
-    const s = { w: LEAF_W, h: LEAF_H };
+    const leaf = LEAF_MAP.get(id);
+    const s = leaf?.compact
+      ? { w: COMPACT_W, h: COMPACT_H }
+      : { w: LEAF_W, h: LEAF_H };
     cache.set(id, s);
     return s;
   }

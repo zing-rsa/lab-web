@@ -117,6 +117,17 @@ export const COMPONENTS: ComponentDef[] = [
       "Gateway API implementation. A single shared Gateway with per-environment HTTPS listeners terminates TLS and routes HTTPRoutes to application Services; its Service is what the CCM exposes via the LB.",
   },
   {
+    id: "load-demo-gateway",
+    name: "Load Demo Gateway",
+    kind: "WebSocket ingress · Go",
+    namespace: "infra-dev",
+    count: "×1",
+    accent: "apps",
+    compact: true,
+    summary:
+      "Go WebSocket gateway for the live load demo. Holds one socket per browser tab, rate-limits offered load (per-connection and a hard global cap), publishes accepted transactions to NATS, and streams system-wide metrics back down every socket at 1 Hz.",
+  },
+  {
     id: "external-dns",
     name: "external-dns",
     kind: "DNS controller",
@@ -127,6 +138,15 @@ export const COMPONENTS: ComponentDef[] = [
       "Watches Gateway API routes and Services and syncs Cloudflare DNS records to point at the ingress LB. Reads its Cloudflare token from a Secret synced out of OpenBao by ESO.",
   },
   {
+    id: "keda",
+    name: "KEDA",
+    kind: "pod autoscaler",
+    namespace: "keda",
+    accent: "platform",
+    summary:
+      "Kubernetes Event-Driven Autoscaler. A ScaledObject watches the NATS JetStream consumer backlog and scales the load-demo-worker Deployment between 1 and 5 replicas — pods only, sized to always fit the warm worker node.",
+  },
+  {
     id: "cnpg",
     name: "CloudNativePG",
     kind: "Postgres operator",
@@ -135,6 +155,16 @@ export const COMPONENTS: ComponentDef[] = [
     accent: "data",
     summary:
       "Cluster-scoped Postgres operator. Reconciles per-environment Postgres clusters (in dev/uat/prod namespaces) on hcloud volumes and exposes them to application pods.",
+  },
+  {
+    id: "nats",
+    name: "NATS JetStream",
+    kind: "event stream · WorkQueue",
+    namespace: "nats",
+    count: "×1",
+    accent: "events",
+    summary:
+      "Single-server NATS JetStream with an in-memory WorkQueue stream. The load-demo gateway publishes dummy transactions here; workers pull and ACK them (removing them from the queue), and KEDA scales the worker pool on the stream's pending backlog.",
   },
   {
     id: "external-secrets",
@@ -221,6 +251,52 @@ export const COMPONENTS: ComponentDef[] = [
     summary:
       "A deployed application workload. Apps live in their own repos and register into the cluster via reusable CI/CD and a Flux registration.",
   },
+
+  {
+    id: "ldw-1",
+    name: "Load Demo Worker 1",
+    kind: "consumer",
+    accent: "apps",
+    compact: true,
+    summary:
+      "A single load-demo-worker pod: a Go JetStream consumer doing tunable CPU work per transaction. KEDA adds and removes these pods based on the NATS backlog; this pool always has at least one.",
+  },
+  {
+    id: "ldw-2",
+    name: "Load Demo Worker 2",
+    kind: "consumer",
+    accent: "apps",
+    compact: true,
+    summary:
+      "A load-demo-worker pod added by KEDA when the NATS backlog grows. Scaled down again once the burst drains.",
+  },
+  {
+    id: "ldw-3",
+    name: "Load Demo Worker 3",
+    kind: "consumer",
+    accent: "apps",
+    compact: true,
+    summary:
+      "A load-demo-worker pod added by KEDA when the NATS backlog grows. Scaled down again once the burst drains.",
+  },
+  {
+    id: "ldw-4",
+    name: "Load Demo Worker 4",
+    kind: "consumer",
+    accent: "apps",
+    compact: true,
+    summary:
+      "A load-demo-worker pod added by KEDA when the NATS backlog grows. Scaled down again once the burst drains.",
+  },
+  {
+    id: "ldw-5",
+    name: "Load Demo Worker 5",
+    kind: "consumer",
+    accent: "apps",
+    compact: true,
+    summary:
+      "The last load-demo-worker pod KEDA will add (max 5). The cap is sized so all replicas co-schedule on the warm worker node — no new cluster node is ever provisioned.",
+  },
 ];
 
 export const BOXES: BoxSpec[] = [
@@ -264,7 +340,7 @@ export const BOXES: BoxSpec[] = [
     count: "1–3",
     summary:
       "The autoscaled cx33 worker pool (min 1 / max 3) managed by the cluster autoscaler. Runs Flux, the platform operators, the observability and data layers, and application workloads.",
-    rows: [["platform-ops"], ["observability-stack"], ["app-pods"], ["cnpg"]],
+    rows: [["platform-ops"], ["observability-stack"], ["app-pods"], ["cnpg", "nats"]],
   },
   {
     id: "platform-ops",
@@ -276,7 +352,7 @@ export const BOXES: BoxSpec[] = [
       "The GitOps and platform controllers running on the workers: the ingress gateway, the Flux reconciler, and the operators that wire the cluster to Cloudflare and OpenBao (DNS, secrets, TLS).",
     rows: [
       ["envoy-gateway", "flux"],
-      ["external-dns", "external-secrets", "cert-manager"],
+      ["external-dns", "external-secrets", "cert-manager", "keda"],
     ],
   },
   {
@@ -299,7 +375,19 @@ export const BOXES: BoxSpec[] = [
     count: "×3",
     summary:
       "Application workloads promoted through dev → uat → prod namespaces. They consume Postgres from CloudNativePG, Secrets from ESO, and emit telemetry to the observability stack.",
-    rows: [["app1", "app2", "app3"]],
+    rows: [["app1", "app2", "app3"], ["load-demo-pods"]],
+  },
+  {
+    id: "load-demo-pods",
+    label: "LOAD DEMO PODS",
+    accent: "apps",
+    dashed: true,
+    kind: "gateway + KEDA-scaled workers · Go",
+    namespace: "infra-dev",
+    count: "1–5",
+    summary:
+      "The load-demo workloads: the WebSocket gateway (left) plus the Go JetStream worker pods. KEDA scales the workers 1–5 on the NATS backlog; each card is a live pod. Workers emit transactions_processed_total, which drives the processed-TPS graph.",
+    rows: [["load-demo-gateway", "ldw-1", "ldw-2", "ldw-3", "ldw-4", "ldw-5"]],
   },
 ];
 
@@ -394,4 +482,12 @@ export const EDGES: EdgeDef[] = [
   { source: "app-pods", target: "external-secrets" },
   { source: "external-dns", target: "app-pods" },
   { source: "cert-manager", target: "app-pods" },
+
+  { source: "envoy-gateway", target: "load-demo-gateway" },
+  { source: "load-demo-gateway", target: "nats" },
+  { source: "nats", target: "load-demo-pods" },
+  { source: "keda", target: "nats" },
+  { source: "keda", target: "load-demo-pods" },
+  { source: "load-demo-gateway", target: "prometheus" },
+  { source: "load-demo-pods", target: "prometheus" },
 ];

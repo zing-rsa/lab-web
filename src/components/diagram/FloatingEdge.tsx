@@ -14,6 +14,8 @@ import {
   type Side,
 } from "@/lib/diagram";
 
+const LOADPATH_COLOR = "#b794f6";
+
 export interface FloatingEdgeData {
   flow?: FlowKind;
   label?: string;
@@ -24,6 +26,7 @@ export interface FloatingEdgeData {
   targetBottomFrac?: number;
   sourceTopFrac?: number;
   sourceBottomFrac?: number;
+  loadpath?: boolean;
   highlighted: boolean;
   dimmed: boolean;
   [key: string]: unknown;
@@ -79,6 +82,22 @@ export function FloatingEdge({ id, source, target, markerEnd, data }: EdgeProps)
     targetY: ty,
     curvature: 0.3,
   });
+
+  if (d.loadpath) {
+    return (
+      <path
+        id={id}
+        d={path}
+        fill="none"
+        markerEnd={markerEnd}
+        stroke={LOADPATH_COLOR}
+        strokeWidth={2.2}
+        strokeOpacity={1}
+        strokeDasharray="6 6"
+        className="animate-loadpath"
+      />
+    );
+  }
 
   let stroke = flowStroke(d.flow);
   let opacity = 0;
