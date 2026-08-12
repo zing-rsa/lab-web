@@ -38,8 +38,7 @@ type ServerMsg =
 
 const EMIT_HZ = 10;
 const EMIT_INTERVAL = 1000 / EMIT_HZ;
-// Cap the per-tick catch-up so a backgrounded/suspended tab (whose timers get throttled) keeps
-// emitting at the right rate without dumping a huge burst when it resumes.
+// Safety clamp on the per-tick catch-up (guards against a delayed timer / resume dumping a burst).
 const MAX_EMIT_ELAPSED = 1000;
 const BURST_MS = 60_000;
 const RECONNECT_MS = 2_000;
@@ -155,18 +154,30 @@ export function useLoadgen(): LoadgenState {
     };
   }, []);
 
-  // While a burst runs, pace batches to the slider TPS. Each batch is sized from the *actual* time
-  // elapsed since the last tick (not a fixed 100 ms), so if the tab is backgrounded and the browser
-  // throttles this timer to ~1 Hz the offered rate stays correct — the batches just get chunkier.
-  // Fractional carry keeps the long-run average exact.
+  // While a burst runs, pace batches to the slider TPS from the actual elapsed time (so minor timer
+  // jitter stays accurate). Emission pauses while the tab is backgrounded: a hidden tab's timers are
+  // throttled and emitting from the background misbehaves, so we simply stop until it's visible.
   useEffect(() => {
     if (!bursting) return;
     emitCarryRef.current = 0;
     let last = Date.now();
+
+    // On any visibility change reset the pacing baseline so returning to the foreground doesn't
+    // emit a catch-up burst.
+    const onVisibility = () => {
+      last = Date.now();
+      emitCarryRef.current = 0;
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
     const id = setInterval(() => {
       const now = Date.now();
       const elapsed = Math.min(now - last, MAX_EMIT_ELAPSED);
       last = now;
+      if (document.hidden) {
+        emitCarryRef.current = 0;
+        return;
+      }
       const ws = wsRef.current;
       if (!ws || ws.readyState !== WebSocket.OPEN) return;
       const tps = sliderRef.current;
@@ -177,7 +188,11 @@ export function useLoadgen(): LoadgenState {
       emitCarryRef.current -= n;
       ws.send(JSON.stringify({ t: "load", n }));
     }, EMIT_INTERVAL);
-    return () => clearInterval(id);
+
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [bursting]);
 
   // Countdown + client-side auto-stop at the burst deadline.
