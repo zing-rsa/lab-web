@@ -10,4 +10,4 @@ patches:
 - path: patch-env.yaml
 images:
 - name: ghcr.io/zing-rsa/load-demo-gateway
-  newTag: 0699f54c86fed7b0e74ce1b805d878b85a621213
+  newTag: f62662ead4a45badb06287aa9c00549a5d1fbe25
