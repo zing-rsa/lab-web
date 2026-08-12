@@ -12,4 +12,5 @@ export {
   POD_BOX_FULL_W,
   podBoxWidth,
   podBoxX,
+  podSlotX,
 } from "./elements";

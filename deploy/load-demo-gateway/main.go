@@ -336,8 +336,11 @@ func (a *app) broadcast(msg []byte) {
 	a.mu.RUnlock()
 }
 
+// snapshotInterval is how often a metrics snapshot is computed and fanned down every socket.
+const snapshotInterval = 500 * time.Millisecond
+
 func (a *app) snapshotLoop(ctx context.Context) {
-	t := time.NewTicker(time.Second)
+	t := time.NewTicker(snapshotInterval)
 	defer t.Stop()
 	for {
 		select {
@@ -350,7 +353,10 @@ func (a *app) snapshotLoop(ctx context.Context) {
 }
 
 func (a *app) snapshot(ctx context.Context) []byte {
-	offered := a.offered.Swap(0) // count since last tick == per-second rate (1s interval)
+	// offered is the count accepted since the last tick; divide by the tick length to report a
+	// per-second rate regardless of how often we snapshot.
+	offered := a.offered.Swap(0)
+	offeredTps := int(math.Round(float64(offered) / snapshotInterval.Seconds()))
 
 	var backlog uint64
 	var processedSeq uint64
@@ -359,9 +365,9 @@ func (a *app) snapshot(ctx context.Context) []byte {
 		processedSeq = info.AckFloor.Consumer
 	}
 
-	// Processed TPS is the consumer ack-floor delta each tick: a genuine ~1s-resolution, system-wide
-	// rate straight from NATS. Prometheus' rate() only refreshes per scrape (so it steps every few
-	// seconds), which is why it's not used here.
+	// Processed TPS is the consumer ack-floor delta over the tick, divided by the real elapsed time
+	// (see rateFromSeq) — a genuine sub-second-resolution, system-wide rate straight from NATS.
+	// Prometheus' rate() only refreshes per scrape (so it steps every few seconds), so it's not used.
 	processedTps := a.processed.rate(processedSeq)
 
 	// Replica count comes from near-real-time NATS worker heartbeats (updated within ~1s of a pod
@@ -376,7 +382,7 @@ func (a *app) snapshot(ctx context.Context) []byte {
 
 	snap := map[string]any{
 		"t":            "metrics",
-		"offeredTps":   offered,
+		"offeredTps":   offeredTps,
 		"processedTps": math.Round(processedTps),
 		"backlog":      backlog,
 		"replicas":     int(math.Round(replicas)),

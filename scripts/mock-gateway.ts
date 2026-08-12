@@ -28,40 +28,46 @@ const PER_WORKER = 70; // TPS a single worker pod can drain
 const LAG = 50; // backlog per replica before KEDA wants another pod
 const MIN_REPLICAS = 1;
 const MAX_REPLICAS = 5;
+const TICK_MS = 500; // metrics cadence — matches the real gateway (2 Hz)
+const TICK_S = TICK_MS / 1000;
+const CAP_PER_TICK = CAP * TICK_S; // accepted budget per tick so the aggregate stays at CAP/s
 
 const clients = new Set<WS>();
 
-let offeredAccum = 0; // accepted this second
+let offeredAccum = 0; // accepted this tick
 let backlog = 0;
 let replicas = MIN_REPLICAS;
+let scaleTick = 0;
 
 function clamp(n: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, n));
 }
 
 setInterval(() => {
-  const offeredTps = offeredAccum;
+  const accepted = offeredAccum;
   offeredAccum = 0;
 
-  backlog += offeredTps;
-  const capacity = replicas * PER_WORKER;
-  const processed = Math.min(backlog, capacity);
+  backlog += accepted;
+  const processed = Math.min(backlog, replicas * PER_WORKER * TICK_S);
   backlog -= processed;
 
-  const desired = clamp(Math.ceil(backlog / LAG) || MIN_REPLICAS, MIN_REPLICAS, MAX_REPLICAS);
-  if (desired > replicas) replicas += 1;
-  else if (desired < replicas) replicas -= 1;
+  // Step replicas toward the desired count about once a second (not every tick).
+  if (++scaleTick % Math.round(1 / TICK_S) === 0) {
+    const desired = clamp(Math.ceil(backlog / LAG) || MIN_REPLICAS, MIN_REPLICAS, MAX_REPLICAS);
+    if (desired > replicas) replicas += 1;
+    else if (desired < replicas) replicas -= 1;
+  }
 
   const snapshot = JSON.stringify({
     t: "metrics",
-    offeredTps,
-    processedTps: Math.round(processed),
+    offeredTps: Math.round(accepted / TICK_S),
+    processedTps: Math.round(processed / TICK_S),
     backlog: Math.round(backlog),
     replicas,
     cap: CAP,
   });
   for (const ws of clients) ws.send(snapshot);
-}, 1000);
+}, TICK_MS);
 
 const server = Bun.serve({
   port: PORT,
@@ -89,7 +95,7 @@ const server = Bun.serve({
         return;
       }
       if (m.t !== "load" || typeof m.n !== "number" || m.n <= 0) return;
-      const room = CAP - offeredAccum;
+      const room = CAP_PER_TICK - offeredAccum;
       const take = clamp(m.n, 0, Math.max(0, room));
       offeredAccum += take;
       if (take < m.n) ws.send(JSON.stringify({ t: "limit" }));

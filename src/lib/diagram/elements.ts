@@ -17,29 +17,29 @@ export const podBoxWidth = (podCount: number) =>
 // Keep the (narrower) box centered on the full-width footprint as it grows/shrinks.
 export const podBoxX = (podCount: number) =>
   POD_BOX_FULL_X + (POD_BOX_FULL_W - podBoxWidth(podCount)) / 2;
-
-const POD_TRANSITION = "transform 350ms ease";
-const POD_BOX_TRANSITION = "width 350ms ease, transform 350ms ease";
+// x (within the box) of the Nth pod slot. Hidden pods are packed onto the last visible slot so
+// they never extend the graph bounds (which would throw off fitView centering).
+const POD_FIRST_X = LAID_BY_ID.get("ldw-1")?.x ?? 0;
+export const podSlotX = (slot: number) => POD_FIRST_X + slot * POD_STEP;
 
 export const BASE_NODES: Node[] = LAID.map((n: LaidNode) => {
   const isGroup = n.nodeKind === "group";
   const isPod = WORKER_POD_IDS.includes(n.id);
-  const isGateway = n.id === "load-demo-gateway";
   const isPodBox = n.id === "load-demo-pods";
   return {
     id: n.id,
     type: isGroup ? "lane" : "component",
     parentId: n.parentId,
     ...(n.parentId && !isPod ? { extent: "parent" as const } : {}),
-    position: { x: isPodBox ? podBoxX(1) : n.x, y: n.y },
+    // Start sized for one pod: box + its lone worker centred, the four hidden pods packed on slot 0.
+    // Grow/shrink transitions are enabled after mount (in LabDiagram) so nodes don't fly in on load.
+    position: { x: isPodBox ? podBoxX(1) : isPod ? podSlotX(0) : n.x, y: n.y },
     draggable: false,
     selectable: false,
     zIndex: isGroup ? 0 : 10,
     style: {
       width: isPodBox ? podBoxWidth(1) : n.width,
       height: n.height,
-      ...(isPodBox ? { transition: POD_BOX_TRANSITION } : {}),
-      ...(isPod || isGateway ? { transition: POD_TRANSITION } : {}),
       ...(isPod ? { pointerEvents: n.id === "ldw-1" ? "auto" : "none" } : {}),
     },
     data: isGroup

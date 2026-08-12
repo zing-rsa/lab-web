@@ -31,11 +31,23 @@ const config: Config = {
           from: { opacity: "0" },
           to: { opacity: "1" },
         },
+        // Pulsing notification dot: fades/glows on and off.
+        notify: {
+          "0%, 100%": {
+            opacity: "0.35",
+            boxShadow: "0 0 0 0 rgba(224,145,63,0)",
+          },
+          "50%": {
+            opacity: "1",
+            boxShadow: "0 0 6px 1px rgba(224,145,63,0.85)",
+          },
+        },
       },
       animation: {
         blink: "blink 1s step-end infinite",
         dash: "dash 0.9s linear infinite",
         loadpath: "dash 0.9s linear infinite, loadpathIn 320ms ease-out",
+        notify: "notify 1.6s ease-in-out infinite",
       },
     },
   },

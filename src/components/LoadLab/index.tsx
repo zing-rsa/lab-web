@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type uPlot from "uplot";
 import { TypedHeading } from "@/components/TypedHeading";
 import { clsx } from "@/lib/utils";
@@ -31,9 +31,13 @@ export function LoadLab({ collapsed, onToggle, loadgen }: LoadLabProps) {
   } = loadgen;
 
   const chartData = useMemo<uPlot.AlignedData>(
-    () => [history.t, history.offered, history.processed],
+    () => [history.t, history.offered, history.processed, history.backlog, history.workers],
     [history],
   );
+
+  // Nudge the re-open toggle (shake + glow) until the user has opened the panel at least once.
+  const [hasOpened, setHasOpened] = useState(false);
+  const nudge = collapsed && !hasOpened;
 
   const processed = metrics ? Math.round(metrics.processedTps) : 0;
   const offered = metrics ? metrics.offeredTps : 0;
@@ -55,7 +59,7 @@ export function LoadLab({ collapsed, onToggle, loadgen }: LoadLabProps) {
         <div className="flex items-start justify-between gap-3">
           <TypedHeading
             as="h2"
-            text="load lab"
+            text="fancy a demo?"
             className="text-2xl font-bold leading-tight"
           />
           <button
@@ -69,28 +73,36 @@ export function LoadLab({ collapsed, onToggle, loadgen }: LoadLabProps) {
         </div>
 
         <p className="mt-4 text-sm leading-relaxed text-ink-muted">
-          Generate real load against the live cluster: dummy transactions flow through NATS
-          to the worker pool. Adjust intensity live, watch system-wide TPS, and see KEDA
-          autoscale the worker pods in the diagram. Load auto-stops after {duration}s.
+          The slider below uses a websocket in your browser to generate real load against the cluster.
+          Keep an eye on the diagram - as the backlog of events increases, KEDA provisions new worker pods to increase the throughput of the system.
+          The graph below shows realtime metrics reported from the cluster.
         </p>
 
         <div className="mt-5">
           <LoadChart data={chartData} height={150} />
-          <div className="mt-2 flex items-center gap-4 text-[10px] text-ink-faint">
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-ink-faint">
             <span className="flex items-center gap-1.5">
               <span className="inline-block h-[2px] w-4" style={{ backgroundColor: "#63b8cf" }} />
               offered TPS
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block h-[2px] w-4" style={{ backgroundColor: "#8fca9d" }} />
-              processed TPS
+              <span className="inline-block h-[2px] w-4" style={{ backgroundColor: "#b794f6" }} />
+              system TPS
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-[2px] w-4" style={{ backgroundColor: "#e0913f" }} />
+              backlog
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-[2px] w-4" style={{ backgroundColor: "#e6c34a" }} />
+              workers
             </span>
           </div>
         </div>
 
         <div className="mt-6">
           <div className="flex items-center justify-between text-xs text-ink-muted">
-            <label htmlFor="loadgen-slider">intensity</label>
+            <label htmlFor="loadgen-slider">load</label>
             <span className="text-ink">{slider} TPS</span>
           </div>
           <input
@@ -103,10 +115,6 @@ export function LoadLab({ collapsed, onToggle, loadgen }: LoadLabProps) {
             onChange={(e) => setSlider(Number(e.target.value))}
             className="mt-2 w-full accent-[#8fca9d]"
           />
-          <div className="mt-1 flex justify-between text-[9px] text-ink-faint">
-            <span>0</span>
-            <span>{SLIDER_MAX} TPS / tab</span>
-          </div>
         </div>
 
         <div className="mt-6 flex items-center gap-2">
@@ -121,7 +129,7 @@ export function LoadLab({ collapsed, onToggle, loadgen }: LoadLabProps) {
                 : "border-ink-muted/50 text-ink-muted hover:border-ink hover:text-ink",
             )}
           >
-            generate load
+            generate
           </button>
           <button
             type="button"
@@ -196,19 +204,18 @@ export function LoadLab({ collapsed, onToggle, loadgen }: LoadLabProps) {
         </div>
 
         <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-ink-muted/20 pt-4 text-center">
-          <Readout label="system TPS" value={processed} accent="#8fca9d" />
-          <Readout label="backlog" value={backlog} accent="#a98be0" />
-          <Readout label="worker pods" value={replicas} accent="#8fca9d" />
+          <Readout label="system TPS" value={processed} accent="#b794f6" />
+          <Readout label="backlog" value={backlog} accent="#e0913f" />
+          <Readout label="worker pods" value={replicas} accent="#e6c34a" />
         </dl>
-
-        <p className="mt-4 text-[10px] leading-relaxed text-ink-faint">
-          offered {offered} TPS · aggregated across all tabs. capped at {cap} TPS system-wide.
-        </p>
       </div>
 
       <button
         type="button"
-        onClick={onToggle}
+        onClick={() => {
+          setHasOpened(true);
+          onToggle();
+        }}
         aria-label="Show load lab"
         className={clsx(
           "absolute right-3 top-3 flex h-9 w-9 items-center justify-center border border-ink-muted/40 bg-paper/80 text-lg text-ink-muted shadow-lg backdrop-blur-md transition-opacity duration-300 hover:text-ink sm:right-6 sm:top-1/2 sm:-translate-y-1/2",
@@ -216,6 +223,12 @@ export function LoadLab({ collapsed, onToggle, loadgen }: LoadLabProps) {
         )}
       >
         «
+        {nudge ? (
+          <span
+            aria-hidden
+            className="animate-notify absolute -left-1 -top-1 h-2.5 w-2.5 rounded-full bg-[#e0913f]"
+          />
+        ) : null}
       </button>
     </>
   );

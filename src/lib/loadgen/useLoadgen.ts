@@ -14,6 +14,8 @@ export interface LoadHistory {
   t: number[];
   offered: number[];
   processed: number[];
+  backlog: number[];
+  workers: number[];
 }
 
 export interface LoadgenState {
@@ -42,9 +44,16 @@ const MAX_EMIT_ELAPSED = 1000;
 const BURST_MS = 60_000;
 const RECONNECT_MS = 2_000;
 const LIMIT_FLASH_MS = 1_500;
-const HISTORY_WINDOW = 60;
+// Samples kept for the chart. The gateway fans metrics at 2 Hz, so ~120 samples ≈ a 60s window.
+const HISTORY_WINDOW = 120;
 
-const EMPTY_HISTORY: LoadHistory = { t: [], offered: [], processed: [] };
+const EMPTY_HISTORY: LoadHistory = {
+  t: [],
+  offered: [],
+  processed: [],
+  backlog: [],
+  workers: [],
+};
 
 // The gateway URL: NEXT_PUBLIC_LOADGEN_URL when set (local dev / Tier 0), else same-origin /loadgen.
 function resolveUrl(): string | null {
@@ -108,22 +117,24 @@ export function useLoadgen(): LoadgenState {
         if (msg.t === "metrics") {
           const offeredTps = msg.offeredTps ?? 0;
           const processedTps = msg.processedTps ?? 0;
+          const backlog = msg.backlog ?? 0;
+          const workers = msg.replicas ?? 0;
           setMetrics({
             offeredTps,
             processedTps,
-            backlog: msg.backlog ?? 0,
-            replicas: msg.replicas ?? 0,
+            backlog,
+            replicas: workers,
             cap: msg.cap ?? 0,
           });
           setHistory((prev) => {
             const t = [...prev.t, Date.now() / 1000];
-            const offered = [...prev.offered, offeredTps];
-            const processed = [...prev.processed, processedTps];
             const start = Math.max(0, t.length - HISTORY_WINDOW);
             return {
               t: t.slice(start),
-              offered: offered.slice(start),
-              processed: processed.slice(start),
+              offered: [...prev.offered, offeredTps].slice(start),
+              processed: [...prev.processed, processedTps].slice(start),
+              backlog: [...prev.backlog, backlog].slice(start),
+              workers: [...prev.workers, workers].slice(start),
             };
           });
         } else if (msg.t === "limit") {

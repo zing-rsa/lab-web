@@ -6,7 +6,7 @@ export const ACCENTS: Record<AccentKey, string> = {
   nodes: "#cbb173",
   kubernetes: "#7aa7db",
   gitops: "#b394db",
-  platform: "#86c08f",
+  platform: "#6b8fd6",
   secrets: "#d9b072",
   observability: "#db9b73",
   data: "#74bcc9",

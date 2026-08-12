@@ -80,4 +80,8 @@
   .react-flow__edge-path {
     animation: none !important;
   }
+
+  .animate-notify {
+    animation: none !important;
+  }
 }

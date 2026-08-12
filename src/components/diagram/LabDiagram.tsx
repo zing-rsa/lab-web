@@ -27,6 +27,7 @@ import {
   WORKER_POD_IDS,
   podBoxWidth,
   podBoxX,
+  podSlotX,
   neighbourhood,
   type FlowKind,
 } from "@/lib/diagram";
@@ -40,6 +41,11 @@ const nodeTypes = { component: ComponentNode, lane: GroupNode };
 const edgeTypes = { floating: FloatingEdge };
 
 const MAX_WORKER_PODS = WORKER_POD_IDS.length;
+
+// Grow/shrink easing for the demo pod pool. Applied only after the first layout so the box, gateway
+// and pods don't animate in from the origin when React Flow first places them.
+const POD_TRANSITION = "transform 350ms ease";
+const POD_BOX_TRANSITION = "width 350ms ease, transform 350ms ease";
 
 // Purple "live load" path shown only while *this* tab is generating load: it follows the ingress
 // line to the Envoy gateway, diverts into the load-demo gateway, through NATS, then fans out to
@@ -71,7 +77,7 @@ function buildLoadPathEdges(podCount: number): Edge[] {
 
 const FIT = {
   desktop: {
-    expanded: { left: "560px", right: "48px", top: "56px", bottom: "56px" },
+    expanded: { left: "48px", right: "48px", top: "56px", bottom: "56px" },
     collapsed: { left: "48px", right: "48px", top: "56px", bottom: "56px" },
   },
   mobile: {
@@ -92,7 +98,21 @@ function Flow({ writeupCollapsed, localLoad, replicas }: FlowProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>("internet");
   const [isMobile, setIsMobile] = useState(false);
+  const [ready, setReady] = useState(false);
   const { fitView } = useReactFlow();
+
+  // Fade the canvas in once nodes are placed and the initial fitView has run, so it appears already
+  // positioned rather than settling in view.
+  useEffect(() => {
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => setReady(true));
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, []);
 
   const focusId = hoveredId ?? selectedId;
 
@@ -189,17 +209,39 @@ function Flow({ writeupCollapsed, localLoad, replicas }: FlowProps) {
         const idx = WORKER_POD_IDS.indexOf(n.id);
         if (idx === -1) return n;
         const visible = idx < podCount;
+        // Visible pods sit in their own slot; hidden ones pack onto the last visible slot so they
+        // stay inside the box and don't skew the graph bounds / fitView centering.
+        const x = podSlotX(Math.min(idx, podCount - 1));
         const d = n.data as { visible?: boolean };
         const pointerEvents = visible ? "auto" : "none";
-        if (d.visible === visible && n.style?.pointerEvents === pointerEvents) return n;
+        if (d.visible === visible && n.style?.pointerEvents === pointerEvents && n.position.x === x)
+          return n;
         return {
           ...n,
+          position: { ...n.position, x },
           style: { ...n.style, pointerEvents },
           data: { ...n.data, visible },
         };
       }),
     );
   }, [podCount, setNodes]);
+
+  // Enable the pod-pool grow/shrink transitions only once the initial layout has settled, so the
+  // box, gateway and pods snap into place on load instead of animating in from the origin.
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setNodes((nds) =>
+        nds.map((n) => {
+          if (n.id === "load-demo-pods")
+            return { ...n, style: { ...n.style, transition: POD_BOX_TRANSITION } };
+          if (n.id === "load-demo-gateway" || WORKER_POD_IDS.includes(n.id))
+            return { ...n, style: { ...n.style, transition: POD_TRANSITION } };
+          return n;
+        }),
+      );
+    }, 400);
+    return () => clearTimeout(id);
+  }, [setNodes]);
 
   const onNodeClick: NodeMouseHandler = useCallback((_, node) => {
     const clickable =
@@ -233,6 +275,7 @@ function Flow({ writeupCollapsed, localLoad, replicas }: FlowProps) {
   return (
     <>
       <ReactFlow
+        style={{ opacity: ready ? 1 : 0, transition: "opacity 600ms ease" }}
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
