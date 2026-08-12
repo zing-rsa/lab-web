@@ -18,11 +18,17 @@ spec:
   advanced:
     horizontalPodAutoscalerConfig:
       behavior:
-        scaleDown:
-          # Return to the floor quickly after a burst so the demo visibly scales back down.
-          stabilizationWindowSeconds: 30
+        # Rate-limit both directions to one pod at a time so the pool tracks load gradually
+        # instead of slamming to max and back. Scale-up is immediate (no stabilization); scale-down
+        # waits a minute of sustained low backlog so a briefly-drained queue doesn't cause flapping.
+        scaleUp:
+          stabilizationWindowSeconds: 0
           policies:
-            - { type: Percent, value: 100, periodSeconds: 15 }
+            - { type: Pods, value: 1, periodSeconds: 5 }
+        scaleDown:
+          stabilizationWindowSeconds: 60
+          policies:
+            - { type: Pods, value: 1, periodSeconds: 10 }
   triggers:
     - type: nats-jetstream
       metadata:

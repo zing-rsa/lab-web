@@ -216,8 +216,7 @@ func main() {
 	}
 	if promURL != "" {
 		a.prom = &promClient{base: strings.TrimRight(promURL, "/"), http: &http.Client{Timeout: 3 * time.Second},
-			replicasQuery:  `kube_deployment_status_replicas_available{namespace="` + workerNS + `",deployment="` + workerDep + `"}`,
-			processedQuery: `sum(rate(transactions_processed_total[30s]))`}
+			replicasQuery: `kube_deployment_status_replicas_available{namespace="` + workerNS + `",deployment="` + workerDep + `"}`}
 	}
 
 	// Worker heartbeats feed the NATS fallback for replica count.
@@ -360,15 +359,10 @@ func (a *app) snapshot(ctx context.Context) []byte {
 		processedSeq = info.AckFloor.Consumer
 	}
 
-	processedTps := -1.0
-	if a.prom != nil {
-		if v, ok := a.prom.query(ctx, a.prom.processedQuery); ok {
-			processedTps = v
-		}
-	}
-	if processedTps < 0 {
-		processedTps = a.processed.rate(processedSeq)
-	}
+	// Processed TPS is the consumer ack-floor delta each tick: a genuine ~1s-resolution, system-wide
+	// rate straight from NATS. Prometheus' rate() only refreshes per scrape (so it steps every few
+	// seconds), which is why it's not used here.
+	processedTps := a.processed.rate(processedSeq)
 
 	// Replica count comes from near-real-time NATS worker heartbeats (updated within ~1s of a pod
 	// starting/stopping). Prometheus' kube_deployment_status_replicas_available lags KEDA by the
@@ -465,10 +459,9 @@ func splitCSV(s string) []string {
 
 // promClient does point-in-time Prometheus instant queries and returns the first sample value.
 type promClient struct {
-	base           string
-	http           *http.Client
-	replicasQuery  string
-	processedQuery string
+	base          string
+	http          *http.Client
+	replicasQuery string
 }
 
 func (p *promClient) query(ctx context.Context, expr string) (float64, bool) {
