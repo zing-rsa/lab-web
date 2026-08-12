@@ -36,6 +36,9 @@ type ServerMsg =
 
 const EMIT_HZ = 10;
 const EMIT_INTERVAL = 1000 / EMIT_HZ;
+// Cap the per-tick catch-up so a backgrounded/suspended tab (whose timers get throttled) keeps
+// emitting at the right rate without dumping a huge burst when it resumes.
+const MAX_EMIT_ELAPSED = 1000;
 const BURST_MS = 60_000;
 const RECONNECT_MS = 2_000;
 const LIMIT_FLASH_MS = 1_500;
@@ -141,17 +144,23 @@ export function useLoadgen(): LoadgenState {
     };
   }, []);
 
-  // While a burst runs, pace batches to the slider TPS (~10 Hz). Fractional carry keeps the
-  // long-run average exact for slider values that aren't multiples of EMIT_HZ.
+  // While a burst runs, pace batches to the slider TPS. Each batch is sized from the *actual* time
+  // elapsed since the last tick (not a fixed 100 ms), so if the tab is backgrounded and the browser
+  // throttles this timer to ~1 Hz the offered rate stays correct — the batches just get chunkier.
+  // Fractional carry keeps the long-run average exact.
   useEffect(() => {
     if (!bursting) return;
     emitCarryRef.current = 0;
+    let last = Date.now();
     const id = setInterval(() => {
+      const now = Date.now();
+      const elapsed = Math.min(now - last, MAX_EMIT_ELAPSED);
+      last = now;
       const ws = wsRef.current;
       if (!ws || ws.readyState !== WebSocket.OPEN) return;
       const tps = sliderRef.current;
       if (tps <= 0) return;
-      emitCarryRef.current += (tps * EMIT_INTERVAL) / 1000;
+      emitCarryRef.current += (tps * elapsed) / 1000;
       const n = Math.floor(emitCarryRef.current);
       if (n < 1) return;
       emitCarryRef.current -= n;

@@ -138,18 +138,35 @@ export function LoadLab({ collapsed, onToggle, loadgen }: LoadLabProps) {
           </button>
         </div>
 
-        <div className="mt-2 flex items-center justify-between text-[10px] text-ink-faint">
+        <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-ink-faint">
+          <div className="flex min-w-0 items-center gap-2">
+            <span
+              className={clsx(
+                "tabular-nums transition-opacity duration-200",
+                bursting ? "opacity-100" : "opacity-0",
+                bursting && remaining <= 10 ? "animate-blink text-[#e0913f]" : "",
+              )}
+            >
+              running · auto-stops in {remaining}s
+            </span>
+            {bursting ? (
+              <button
+                type="button"
+                onClick={startBurst}
+                aria-label="Reset the auto-stop timer to a full minute"
+                className={clsx(
+                  "shrink-0 border px-1.5 leading-relaxed transition-colors",
+                  remaining <= 10
+                    ? "border-[#e0913f]/60 text-[#e0913f] hover:border-[#e0913f]"
+                    : "border-ink-muted/40 text-ink-muted hover:border-ink hover:text-ink",
+                )}
+              >
+                +1m
+              </button>
+            ) : null}
+          </div>
           <span
-            className={clsx(
-              "tabular-nums transition-opacity duration-200",
-              bursting ? "opacity-100" : "opacity-0",
-              bursting && remaining <= 10 ? "animate-blink text-[#d05f5f]" : "",
-            )}
-          >
-            running · auto-stops in {remaining}s
-          </span>
-          <span
-            className="flex items-center gap-1.5"
+            className="flex shrink-0 items-center gap-1.5"
             title={connected ? "connected to gateway" : "disconnected"}
           >
             <span
