@@ -7,7 +7,7 @@ resources:
 - networkpolicy.yaml
 images:
 - name: ghcr.io/zing-rsa/lab-web
-  newTag: 706e51d576a5fd8544a3aa7f534c839154596dd7
+  newTag: 3e288dbf57af35e1a137be3ae620b24c853d4fa1
 patches:
 - patch: |-
     - op: add
