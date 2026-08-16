@@ -74,8 +74,8 @@ export function LoadLab({ collapsed, onToggle, loadgen }: LoadLabProps) {
 
         <p className="mt-4 text-sm leading-relaxed text-ink-muted">
           The slider below uses a websocket in your browser to generate real load against the cluster.
-          Keep an eye on the diagram - as the backlog of events increases, KEDA provisions new worker pods to increase the throughput of the system.
           The graph below shows realtime metrics reported from the cluster.
+          Watch the diagram, as the backlog of events increases, new worker pods come online to increase the throughput of the system.
         </p>
 
         <div className="mt-5">

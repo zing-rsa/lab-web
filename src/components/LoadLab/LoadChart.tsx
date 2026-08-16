@@ -65,7 +65,7 @@ export function LoadChart({ data, height = 150 }: LoadChartProps) {
           grid: { stroke: GRID, width: 1 },
           ticks: { stroke: GRID, width: 1 },
           font: FONT,
-          size: 32,
+          size: 42,
         },
         {
           scale: "w",
