@@ -74,7 +74,7 @@ export function LoadLab({ collapsed, onToggle, loadgen }: LoadLabProps) {
 
         <p className="mt-4 text-sm leading-relaxed text-ink-muted">
           The slider below uses a websocket in your browser to generate real load against the cluster.
-          The graph below shows realtime metrics reported from the cluster.
+          The graph shows realtime metrics reported from the cluster.
           Watch the diagram, as the backlog of events increases, new worker pods come online to increase the throughput of the system.
         </p>
 
