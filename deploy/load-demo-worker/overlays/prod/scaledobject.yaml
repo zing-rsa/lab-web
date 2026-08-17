@@ -26,7 +26,7 @@ spec:
           policies:
             - { type: Pods, value: 1, periodSeconds: 5 }
         scaleDown:
-          stabilizationWindowSeconds: 60
+          stabilizationWindowSeconds: 30
           policies:
             - { type: Pods, value: 1, periodSeconds: 10 }
   triggers:
