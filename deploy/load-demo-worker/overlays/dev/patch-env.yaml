@@ -1,0 +1,13 @@
+# Env-specific config for dev. NATS_URL points at the dev-only NATS broker so dev workers consume
+# from and scale on the dev queue only — fully isolated from prod's broker.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: load-demo-worker
+spec:
+  template:
+    spec:
+      containers:
+        - name: load-demo-worker
+          env:
+            - { name: NATS_URL, value: "nats://nats.nats-dev.svc.cluster.local:4222" }

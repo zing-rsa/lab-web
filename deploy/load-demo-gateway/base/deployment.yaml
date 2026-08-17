@@ -1,7 +1,7 @@
 # load-demo-gateway: the single public WebSocket entry point for the load demo. Kept at exactly
 # one replica — it counts offered load in-process, so it must not be horizontally scaled.
-# Namespace, image tag and the env-specific vars (ALLOWED_ORIGINS, WORKER_NAMESPACE) are set by
-# the overlay.
+# Namespace, image tag and the env-specific vars (ALLOWED_ORIGINS, WORKER_NAMESPACE, NATS_URL —
+# the last points at the per-env broker nats-{dev,prod}) are set by the overlay.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

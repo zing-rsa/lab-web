@@ -34,7 +34,7 @@ spec:
     # NATS client port (publish transactions, read consumer backlog, worker heartbeats).
     - to:
         - namespaceSelector:
-            matchLabels: { kubernetes.io/metadata.name: nats }
+            matchLabels: { kubernetes.io/metadata.name: nats-prod }
       ports:
         - { protocol: TCP, port: 4222 }
     # Prometheus HTTP API (processed TPS + worker replica queries).

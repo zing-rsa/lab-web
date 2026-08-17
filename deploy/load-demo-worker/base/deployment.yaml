@@ -1,7 +1,7 @@
 # load-demo-worker: consumes dummy transactions from NATS JetStream and burns a tunable amount of
 # CPU per message. KEDA owns the replica count (see ../<env>/scaledobject.yaml), so `replicas` is
-# deliberately omitted — setting it would make Flux fight the autoscaler. Namespace and image tag
-# are set by the per-env overlay.
+# deliberately omitted — setting it would make Flux fight the autoscaler. Namespace, image tag and
+# NATS_URL (the per-env broker nats-{dev,prod}) are set by the per-env overlay.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

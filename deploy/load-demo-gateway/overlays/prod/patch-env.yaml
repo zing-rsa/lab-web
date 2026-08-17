@@ -1,5 +1,6 @@
 # Env-specific config for prod. ALLOWED_ORIGINS pins the WebSocket origin check to the prod host;
-# WORKER_NAMESPACE tells the gateway where to read load-demo-worker's replica count in Prometheus.
+# WORKER_NAMESPACE tells the gateway where to read load-demo-worker's replica count in Prometheus;
+# NATS_URL points at the prod-only NATS broker so prod load never touches the dev queue.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -12,3 +13,4 @@ spec:
           env:
             - { name: ALLOWED_ORIGINS, value: "infra.zingdev.xyz" }
             - { name: WORKER_NAMESPACE, value: "infra" }
+            - { name: NATS_URL, value: "nats://nats.nats-prod.svc.cluster.local:4222" }

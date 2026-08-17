@@ -33,8 +33,9 @@ spec:
     - type: nats-jetstream
       metadata:
         # Monitoring (8222) is only exposed on the headless service; the ClusterIP `nats` service
-        # publishes the client port (4222) only.
-        natsServerMonitoringEndpoint: "nats-headless.nats.svc.cluster.local:8222"
+        # publishes the client port (4222) only. Points at the dev-only broker so KEDA scales on
+        # the dev backlog exclusively.
+        natsServerMonitoringEndpoint: "nats-headless.nats-dev.svc.cluster.local:8222"
         account: "$G"
         stream: "TRANSACTIONS"
         consumer: "txworker"

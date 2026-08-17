@@ -1,0 +1,13 @@
+# Env-specific config for prod. NATS_URL points at the prod-only NATS broker so prod workers
+# consume from and scale on the prod queue only — fully isolated from dev's broker.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: load-demo-worker
+spec:
+  template:
+    spec:
+      containers:
+        - name: load-demo-worker
+          env:
+            - { name: NATS_URL, value: "nats://nats.nats-prod.svc.cluster.local:4222" }

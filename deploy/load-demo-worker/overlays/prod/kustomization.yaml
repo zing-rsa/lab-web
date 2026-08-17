@@ -6,6 +6,8 @@ resources:
   - scaledobject.yaml
   - servicemonitor.yaml
   - networkpolicy.yaml
+patches:
+  - path: patch-env.yaml
 images:
   - name: ghcr.io/zing-rsa/load-demo-worker
     newTag: latest # managed by the load-demo deploy/promote workflow
