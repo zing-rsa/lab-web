@@ -10,4 +10,4 @@ patches:
 - path: patch-env.yaml
 images:
 - name: ghcr.io/zing-rsa/load-demo-worker
-  newTag: v1.1.1
+  newTag: v1.1.2
