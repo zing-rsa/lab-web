@@ -34,7 +34,7 @@ import {
 import { ComponentNode } from "./ComponentNode";
 import { GroupNode } from "./GroupNode";
 import { FloatingEdge } from "./FloatingEdge";
-import { Legend } from "./Legend";
+import { StarLink } from "@/components/StarLink";
 import { DetailPanel, NodePopup, type Selection } from "./DetailPanel";
 
 const nodeTypes = { component: ComponentNode, lane: GroupNode };
@@ -90,9 +90,10 @@ interface FlowProps {
   writeupCollapsed: boolean;
   localLoad: boolean;
   replicas: number;
+  stars: number | null;
 }
 
-function Flow({ writeupCollapsed, localLoad, replicas }: FlowProps) {
+function Flow({ writeupCollapsed, localLoad, replicas, stars }: FlowProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(BASE_NODES);
   const [edges, setEdges, onEdgesChange] = useEdgesState(BASE_EDGES);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -312,8 +313,13 @@ function Flow({ writeupCollapsed, localLoad, replicas }: FlowProps) {
           nodeStrokeColor="#2a2a2a"
           nodeStrokeWidth={2}
         />
-        <Panel position="top-right">
-          <Legend />
+        {/* Mobile corners hold the panel toggles (36px, 12px from the top), so the compact
+            square sits centred between them at the same height. */}
+        <Panel position="top-center" className="sm:hidden" style={{ marginTop: 12 }}>
+          <StarLink stars={stars} compact />
+        </Panel>
+        <Panel position="top-right" className="hidden sm:block">
+          <StarLink stars={stars} />
         </Panel>
 
         {isMobile && selectedId ? (
@@ -339,12 +345,14 @@ interface LabDiagramProps {
   writeupCollapsed?: boolean;
   localLoad?: boolean;
   replicas?: number;
+  stars?: number | null;
 }
 
 export function LabDiagram({
   writeupCollapsed = false,
   localLoad = false,
   replicas = 1,
+  stars = null,
 }: LabDiagramProps) {
   return (
     <ReactFlowProvider>
@@ -352,6 +360,7 @@ export function LabDiagram({
         writeupCollapsed={writeupCollapsed}
         localLoad={localLoad}
         replicas={replicas}
+        stars={stars}
       />
     </ReactFlowProvider>
   );
