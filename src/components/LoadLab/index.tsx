@@ -37,7 +37,10 @@ export function LoadLab({ collapsed, onToggle, loadgen }: LoadLabProps) {
 
   // Nudge the re-open toggle (shake + glow) until the user has opened the panel at least once.
   const [hasOpened, setHasOpened] = useState(false);
+  if (!collapsed && !hasOpened) setHasOpened(true);
   const nudge = collapsed && !hasOpened;
+
+  const [infoOpen, setInfoOpen] = useState(true);
 
   const processed = metrics ? Math.round(metrics.processedTps) : 0;
   const offered = metrics ? metrics.offeredTps : 0;
@@ -59,7 +62,7 @@ export function LoadLab({ collapsed, onToggle, loadgen }: LoadLabProps) {
         <div className="flex items-start justify-between gap-3">
           <TypedHeading
             as="h2"
-            text="fancy a demo?"
+            text="DDos me?"
             className="text-2xl font-bold leading-tight"
           />
           <button
@@ -72,11 +75,36 @@ export function LoadLab({ collapsed, onToggle, loadgen }: LoadLabProps) {
           </button>
         </div>
 
-        <p className="mt-4 text-sm leading-relaxed text-ink-muted">
-          The slider below uses a websocket in your browser to generate real load against the cluster.
-          The graph shows realtime metrics reported from the cluster.
-          Watch the diagram, as the backlog of events increases, new worker pods come online to increase the throughput of the system.
-        </p>
+        <button
+          type="button"
+          onClick={() => setInfoOpen((open) => !open)}
+          aria-expanded={infoOpen}
+          aria-controls="loadlab-writeup"
+          className="mt-4 self-start text-xs text-ink-faint transition-colors hover:text-ink"
+        >
+          {infoOpen ? "[-]" : "[+]"} how it works
+        </button>
+
+        <div
+          id="loadlab-writeup"
+          aria-hidden={!infoOpen}
+          className={clsx(
+            "grid transition-[grid-template-rows,opacity] duration-300",
+            infoOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+          )}
+        >
+          <div className="overflow-hidden">
+            <p className="pt-2 text-sm leading-relaxed text-ink-muted">
+              The slider below uses a websocket in your browser to send traffic to my cluster.
+              Live metrics from the cluster are reported in the graph below.
+
+              Once you increase the load past where the current pods can keep up, a backlog of events starts to grow. 
+              The cluster monitors this backlog and scales workers until the backlog is handled.
+
+              The architecture diagram in the background displays the flow of data and will update as new workers go on/offline.
+            </p>
+          </div>
+        </div>
 
         <div className="mt-5">
           <LoadChart data={chartData} height={150} />
@@ -212,10 +240,7 @@ export function LoadLab({ collapsed, onToggle, loadgen }: LoadLabProps) {
 
       <button
         type="button"
-        onClick={() => {
-          setHasOpened(true);
-          onToggle();
-        }}
+        onClick={onToggle}
         aria-label="Show load lab"
         className={clsx(
           "absolute right-3 top-3 flex h-9 w-9 items-center justify-center border border-ink-muted/40 bg-paper/80 text-lg text-ink-muted shadow-lg backdrop-blur-md transition-opacity duration-300 hover:text-ink sm:right-6 sm:top-1/2 sm:-translate-y-1/2",

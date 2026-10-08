@@ -7,12 +7,14 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
 # ---- build: compile Next.js, emit standalone output ----
-FROM oven/bun:1.3.10 AS build
+# Built on Node, not Bun: in oven/bun `node` is a symlink to bun, and Bun's runtime segfaults
+# during `next build` on Next 16.3+.
+FROM node:24-slim AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN bun run build
+RUN ./node_modules/.bin/next build
 
 # ---- runtime: minimal node image running the standalone server ----
 FROM node:24-slim AS runner
@@ -21,6 +23,9 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
+
+# Pull Debian security patches the base image hasn't picked up yet.
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 
 # The standalone server runs with `node` only — strip npm/npx/corepack to shrink
 # the attack surface and image size.

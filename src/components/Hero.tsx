@@ -7,9 +7,10 @@ import { clsx } from "@/lib/utils";
 interface HeroProps {
   collapsed: boolean;
   onToggle: () => void;
+  onRunDemo: () => void;
 }
 
-export function Hero({ collapsed, onToggle }: HeroProps) {
+export function Hero({ collapsed, onToggle, onRunDemo }: HeroProps) {
   return (
     <>
       <div
@@ -40,22 +41,23 @@ export function Hero({ collapsed, onToggle }: HeroProps) {
           {siteConfig.intro}
         </p>
 
-        <nav className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-          <a
-            href={siteConfig.repo}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="text-ink-muted underline-offset-4 transition-colors hover:text-ink hover:underline"
+        <button
+          type="button"
+          onClick={onRunDemo}
+          className="group mt-6 inline-flex items-center gap-2.5 self-center border border-[#8fca9d]/40 bg-[#8fca9d]/[0.06] px-3 py-1.5 text-sm text-[#8fca9d] transition-colors hover:border-[#8fca9d]/80 hover:bg-[#8fca9d]/[0.12] motion-safe:animate-glow"
+        >
+          <span
+            aria-hidden
+            className="inline-block h-1.5 w-1.5 rounded-full bg-[#8fca9d]"
+          />
+          run a demo
+          <span
+            aria-hidden
+            className="transition-transform duration-200 group-hover:translate-x-0.5"
           >
-            → view source
-          </a>
-          <a
-            href={siteConfig.portfolio}
-            className="text-ink-muted underline-offset-4 transition-colors hover:text-ink hover:underline"
-          >
-            → my portfolio
-          </a>
-        </nav>
+            →
+          </span>
+        </button>
 
         <p className="mt-6 border-t border-ink-muted/20 pt-4 text-xs leading-relaxed text-ink-faint">
           drag, scroll and click the diagram to explore.

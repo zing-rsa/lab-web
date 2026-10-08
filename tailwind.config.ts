@@ -42,12 +42,17 @@ const config: Config = {
             boxShadow: "0 0 6px 1px rgba(224,145,63,0.85)",
           },
         },
+        glow: {
+          "0%, 100%": { boxShadow: "0 0 0 0 rgba(143,202,157,0)" },
+          "50%": { boxShadow: "0 0 18px 2px rgba(143,202,157,0.35)" },
+        },
       },
       animation: {
         blink: "blink 1s step-end infinite",
         dash: "dash 0.9s linear infinite",
         loadpath: "dash 0.9s linear infinite, loadpathIn 320ms ease-out",
         notify: "notify 1.6s ease-in-out infinite",
+        glow: "glow 2.2s ease-in-out infinite",
       },
     },
   },

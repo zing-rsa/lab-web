@@ -29,6 +29,10 @@ export default function Home() {
     setLabCollapsed(!labCollapsed);
     if (opening) setHeroCollapsed(true);
   };
+  const openLab = () => {
+    setHeroCollapsed(true);
+    setLabCollapsed(false);
+  };
 
   return (
     <main className="fixed inset-0 overflow-hidden">
@@ -39,7 +43,7 @@ export default function Home() {
       />
 
       <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-start p-3 sm:items-center sm:p-6">
-        <Hero collapsed={heroCollapsed} onToggle={toggleHero} />
+        <Hero collapsed={heroCollapsed} onToggle={toggleHero} onRunDemo={openLab} />
       </div>
 
       <div className="pointer-events-none absolute inset-y-0 right-0 z-10 flex items-start justify-end p-3 sm:items-center sm:p-6">
